@@ -1,0 +1,34 @@
+
+#include <stateDiagramsSwRI.fnc>
+
+
+// Configure P-h and T-s Diagrams
+
+// DEFINE list of elements to include in the diagram.
+// Internal logic has been updated to look for Elements with at
+// least 1 input AND 1 output in the provided list. 
+string phElist[] = .list("Element");
+// SET the list of elements. 
+stateDiagrams.setElist(phElist);
+
+// Fluid Composition
+string flList[] = .list("FluidPort");
+string comp=flList[0]->comp;
+
+// Calculate Vapor Dome
+if ( ! sys.fileExists(comp+".dome") ) {
+    stateDiagrams.vaporDome(comp,nDome);
+}
+
+if ( ! sys.fileExists(comp+".PT.contour") ) {
+    stateDiagrams.contourPT(comp, 20., 5000., 40, 400., 2000., 17);
+}
+
+// Calculate iso-contours for the defined region of interest (work in progress)
+// stateDiagrams.squarePh("METHANE",10.0,20000.0,51,-350.0,100.0,51);
+
+// Go evaluate gnuplot scripts at runtime
+stateDiagrams.doRun = FALSE;
+
+// Update state diagrams
+stateDiagrams.update();

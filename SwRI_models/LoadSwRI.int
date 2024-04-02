@@ -1,0 +1,213 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __LOADSwRI__
+#define __LOADSwRI__
+
+#include <InterpIncludes.ncp>
+
+class LoadSwRI extends Element {
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+  title = "";
+
+  description = "The "+ isA()+ "element imposes a torque load on a shaft.  The
+torque is either directly input or is from a table function of two user-input
+parameters.";
+
+  usageNotes = isA() + 
+  " 
+
+- In addition to turbines and compressors, a variety of torque loads are 
+imposed on a shaft.  These loads include accessories such as starters, 
+generators, or customer power takeoffs connected to a shaft, bearing losses, 
+or loads intentionally applied to a shaft for testing purposes, e.g., by 
+a water brake.
+
+- Loads are typically modeled empirically by a torque load as a function 
+of a load speed and/or some arbitrary number of user-input parameters.  
+For example, a water brake may provide a torque load as a function of brake 
+inlet pressure and temperature, as well as brake speed.
+
+- There is one outlet port that connects to a shaft.
+
+- Load is defined by an input of torque, trqLoad, or a table, 
+TB_Load = f(parmLoad_y, parmLoad_x).
+
+- Nload = Sh_O.Nmech * NR;
+
+- pwr = trqLoad * Nload * 2*PI/60/550;
+
+- trq = trqLoad * NR;";
+
+  background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+  real inertia {
+    value = 0;  IOstatus = INPUT;  units = SLUG_FT2;
+    description = "Inertia of load component";
+  }
+  real Nload {
+    value = 0;  IOstatus = OUTPUT;  units = RPM;
+    description = "Load speed";
+  }
+  real NR {
+    value = 1;  IOstatus = INPUT;  units = NONE;
+    description = "Ratio of load to shaft speed";
+  }
+  real parmLoad_x {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "X input to load torque table";
+  }
+  real parmLoad_y {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Y input to load torque table";
+  }
+  real pwrLoad {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Horsepower from load";
+  }
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Horsepower from load";
+  }
+  real trqLoad {
+    value = 0;  IOstatus = INPUT;  units = FT_LBF;
+    description = "Torque from load ";
+  }
+  real trq {
+    value = 0;  IOstatus = OUTPUT;  units = FT_LBF;
+    description = "Torque to shaft";
+  }
+  real dTqT {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Mechanical Losses";
+  }
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+Option switchLoad {
+  allowedValues = { "trqLoad", "pwrLoad" }
+  trigger = 1;    
+}
+  
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+
+  ShaftOutputPort Sh_O {
+    description = "Shaft output port";
+  }
+
+// FLOW STATIONS
+
+// SOCKETS
+
+// TABLES
+// TableSocket TB_Load( )
+//    {
+//      description = "load map table ";
+//      required = TRUE;
+//     }
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+
+  void variableChanged( string name, any oldVal ) {
+  }
+
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  
+  void calculate() {
+
+    //------------------------------------------------------------
+    //  convert horsepower to (ft*lbf)/sec
+    //------------------------------------------------------------
+    real convert = 2. * PI / 60. / C_HPtoFT_LBF_PER_SEC;
+
+	 
+    //------------------------------------------------------------
+    //  read the table to retreive the torque from the Load 
+    //------------------------------------------------------------
+    if (parent.exists("TB_Load")) {
+      trqLoad = TB_Load(parmLoad_y, parmLoad_x);
+    }
+	 
+    //  calculate the load speed
+    //------------------------------------------------------------
+    Nload = Sh_O.Nmech * NR;
+	 
+    //------------------------------------------------------------
+    //  calculate the horsepower from the load and  shaft torque
+    //  and convert horsepower to (ft*lbf)/sec
+    //------------------------------------------------------------
+    if (switchLoad == "trqLoad") {
+      pwrLoad = trqLoad * Nload * convert;
+      pwr = pwrLoad / (1-dTqT);
+      trq = trqLoad * NR / (1-dTqT);	 
+	  } else if (switchLoad == "pwrLoad") {
+      pwr = pwrLoad / (1-dTqT);
+      trqLoad = pwrLoad / Nload / convert;
+      trq = trqLoad * NR / (1-dTqT);  
+    } 
+    //------------------------------------------------------------
+    //  set the shaft torque and inertia
+    //------------------------------------------------------------
+    Sh_O.trq = trq;
+    Sh_O.inertia = inertia;
+  }
+}
+
+#endif
+
+
+

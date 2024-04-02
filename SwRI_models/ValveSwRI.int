@@ -1,0 +1,178 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __VALVE_SWRI__
+#define __VALVE_SWRI__
+
+#include <InterpIncludes.ncp>
+
+class ValveSwRI extends Element {  
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+	 
+  description = isA() + " calculates compressible fluid flow through a valve.";
+
+  usageNotes =  
+"
+
+- Valve Element
+ 
+"; 
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+			
+  real Cv{
+    value = 0.0; IOstatus = INPUT; units = NONE;
+    description = "Valve Cv value";	
+  }
+  real Xt{
+    value = 0.0; IOstatus = INPUT; units = NONE;
+    description = "Permanent pressure loss parameter";	//Need to refine this when valve info is finalized
+  }
+  real x{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Parameter for dP calculation";
+  }  
+  real y{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Parameter for dP calculation accounting for gas expansion";
+  } 
+  real dPguess{
+    value = 0.005; IOstatus = INPUT; units = PSIA;
+    description = "total change in pressure including all sources";
+  }
+  real dP{
+    value = 0.005; IOstatus = INPUT; units = PSIA;
+    description = "total change in pressure including all sources";
+  }
+  real W_solve {
+	value = 0.0; IOstatus = OUTPUT; units = LBM_PER_SEC;
+    description = "Flow Rate through valve solved";
+  }
+  real W_choke {
+	value = 0.0; IOstatus = OUTPUT; units = LBM_PER_SEC;
+    description = "Choked flow rate through the valve";
+  }
+
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+  
+  FlowStation Fl_temp {
+    description = "Temporary FlowStation used for calculating effectiveness";
+  }
+  
+  // FLUID PORTS
+
+  FluidInputPort Fl_I{   
+    description = "Inlet fluid port ";
+  }  
+  FluidOutputPort Fl_O{ 
+    description = "Outlet fluid port ";
+  }
+  
+  // FUEL PORTS
+  
+  // BLEED PORTS
+  
+  // THERMAL PORTS
+  
+  // MECHANICAL PORTS
+    
+  // FLOW STATIONS
+  
+  // SOCKETS
+  
+  // TABLES
+ 
+  //------------------------------------------------------------
+  // ******* SOLVER SETUP *******
+  //------------------------------------------------------------  
+  
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENT  ******
+  //------------------------------------------------------------
+  Independent ind_dP{
+	varName = "dP";
+    autoSetup = TRUE;
+  }
+  Dependent dep_W{
+    eq_lhs = "W_solve";
+    eq_rhs = "Fl_I.W";
+	tolerance = 1e-5;
+    autoSetup = TRUE;
+  }
+
+  //------------------------------------------------------------
+  //  ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+
+  Option switchDes{
+    allowedValues = {DESIGN,OFFDESIGN }	//default value is DESIGN
+    description = "Design mode switch indicator [DESIGN/OFFDESIGN]";
+    trigger = 0;
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  //------------------------------------------------------------
+  //  ******* VERIFY ELEMENT *******
+  //------------------------------------------------------------
+  
+  //------------------------------------------------------------
+  //  ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  
+  void calculate() {
+  //-----------------------------------------------------------------------
+  // execute the map, if it exists
+  //-----------------------------------------------------------------------
+  Fl_O.copyFlow("Fl_I");
+  
+  x = dP/Fl_I.Pt;
+  
+  if (x < Xt){
+	  y = 1.0 - x/(3.0*(Fl_I.gamt/1.4)*Xt);
+	  W_solve = (Cv*y)*(dP*Fl_I.rhot)**(0.5)*(63.3/3600.0);
+  }
+  else {
+	  y = 1.0-1.0/(3.0);
+	  W_solve = (Cv*y)*((Xt*Fl_I.Pt)*Fl_I.rhot)**(0.5)*(63.3/3600.0);
+	  cout << "CHOKED" << endl;
+  }
+  
+  Fl_O.setTotal_hP(Fl_I.ht,Fl_I.Pt-dP);
+	 		  
+
+ } //End calculate
+
+} //End Element 
+
+#endif
+

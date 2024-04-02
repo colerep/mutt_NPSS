@@ -1,0 +1,165 @@
+
+#ifndef __HeaterSwRI__
+#define __HeaterSwRI__
+
+#include <InterpIncludes.ncp>
+
+class HeatSink extends Element {
+
+  //------------------------------------------------------------
+  //     ******* DOCUMENTATION *******
+  //------------------------------------------------------------
+
+  title = "";
+
+  description = isA()+" will add or remove thermal energy based on (1) outlet
+temperature, (2) specified thermal duty";
+
+  usageNotes = isA() +
+    "
+No Provisional Errors or Warnings
+
+- "+isA()+" is used to add or remove thermal energy to a flow.";
+
+  background = "";
+
+  //------------------------------------------------------------
+  //     ******* SETUP VARIABLES ********
+  //------------------------------------------------------------
+
+  real Tout {
+    value = -999; IOstatus = INPUT; units = "R";
+    description = "Outlet Temperature";
+  }
+
+  real ToutDes {
+    value = -999; IOstatus = INPUT; units = "R";
+    description = "Outlet Temperature";
+  }
+
+  real dT {
+    value = 0; IOstatus = INPUT; units = "R";
+    description = "Change in Temperature";
+  }
+
+  real dTdes {
+    value = 0; IOstatus = INPUT; units = "R";
+    description = "Change in Temperature";
+  }
+
+  real Q {
+    value = 0; IOstatus = INPUT; units = "Btu/sec";
+    description = "Thermal Duty";
+  }
+
+  real Qdes {
+    value = 0; IOstatus = INPUT; units = "Btu/sec";
+    description = "Thermal Duty";
+  }
+
+  real dPqP {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Normalized pressure drop (delta P/P)";
+  }
+
+  //------------------------------------------------------------
+  //   ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+
+  Option switchHeat {
+    allowedValues = { "TEMP", "dTEMP", "Q" };
+    description = "Switch determines if we are setting outlet Temperature, TEMP, change in temperature, dTEMP, heater duty, Q.";
+    trigger = 1;
+  }
+
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+
+  // FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary inlet flow";
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exit flow";
+  }
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS
+
+  // SOCKETS
+
+  // TABLES
+
+
+  //------------------------------------------------------------
+  // ******* INTERNAL SOLVER SETUP *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  // ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+
+  void variableChanged( string name, any oldVal ) {
+
+    //Option switchHeat {
+    //  allowedValues = { "TEMP", "dTEMP", "Q", "SUPERHEAT", "SUBCOOL", "QUALITY"};
+
+  }
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+
+  void calculate() {
+
+    //------------------------------------------------------------
+    // Pass the flow information from the inlet to the outlet
+    //------------------------------------------------------------
+    Fl_O.copyFlow( "Fl_I" );
+
+    dP = dPqP * Fl_I.Pt;
+    real PtOut; 
+    PtOut = Fl_I.Pt - dP;
+
+    if ( switchHeat == "TEMP" ) {
+      // Specify Outlet Temperature and Pressure
+      if ( ToutDes >= 0 ) {
+        Fl_O.setTotalTP( ToutDes, PtOut );
+      }
+    } else if ( switchHeat == "dTEMP" ) {
+      // Specify Outlet Temperature based on dTdes and Pressure
+      Fl_O.setTotalTP( Fl_I.Tt + dTdes, PtOut );
+    } else if ( switchHeat == "Qdes" ) {
+      // Calculate rise in enthalpy due to thermal duty
+      Fl_O.setTotal_hP( Fl_I.ht + Q/Fl_I.W, PtOut );
+    } if ( switchHeat == "MAXTEMP" ) {
+      // Specify Outlet Temperature and Pressure
+      if ( ToutDes < Fl_I.Tt ) {
+        Fl_O.setTotalTP( ToutDes, PtOut );
+      }
+    }
+
+    // Update Outputs based on inlet and outlet conditions
+    Tout = Fl_O.Tt;
+    dT = Fl_O.Tt - Fl_I.Tt;
+    Q = (Fl_O.ht - Fl_I.ht) * Fl_I.W;
+    
+  }
+
+}
+
+#endif

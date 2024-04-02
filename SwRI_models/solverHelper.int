@@ -1,0 +1,59 @@
+#ifndef __solverHelper__
+#define __solverHelper__
+
+VariableContainer solverHelper {
+
+    if (!exists("solverList")) {
+        string solverList[];
+        int i;
+    }
+
+    void updateSolverList() {
+        solverList = .list("Solver",1);
+    }
+
+    void printConverged() {
+        cout << "Case " << CASE << " Solution finished, solver.converged = " << solver.converged << " iterationCounter = " << solver.iterationCounter << endl;
+        
+        cout << "Case " << CASE << " Solution finished" << endl;
+        for (i=0;i<solverList.entries();i++) {
+        cout << "\t" << solverList[i] << " converged = " << solverList[i]->converged << " iterationCounter = " << solverList[i]->iterationCounter << " passCounter = " << solverList[i]->passCounter << endl;
+        }
+
+    }
+
+    void printStats() {
+        int i;
+        string out;
+
+        updateSolverList();
+        for (i=0;i<solverList.entries();i++) {
+            cout << endl << "*** " << solverList[i] << endl;
+            cout << solverList[i]->indepStats();
+            cout << endl;
+            cout << solverList[i]->depStats();
+        }
+    }
+
+    void printSequence() {
+        int i;
+        for (i=0;i<solverList.entries();i++) {
+            cout << endl << "*** " << solverList[i] << endl;
+            cout << solverList[i]->executionSequence;
+        }
+    }
+
+    void clearSolvers() {
+        int i;
+        updateSolverList();
+        for (i=0;i<solverList.entries();i++) {
+            solverList[i]->clear();
+        }
+    }
+
+    // Initialize solverList
+    updateSolverList();
+
+}
+
+#endif

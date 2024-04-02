@@ -1,0 +1,14 @@
+# Cooler	Cooler.Fl_I.Pt	Cooler.Fl_O.Pt	Cooler.Fl_I.Tt	Cooler.Fl_O.Tt	Cooler.Fl_I.ht	Cooler.Fl_O.ht	Cooler.Fl_I.s	Cooler.Fl_O.s	Cooler.Fl_I.rhot	Cooler.Fl_O.rhot	
+Cooler	947.607	942.753	537.87	536.22	-84.8796	-96.7875	-0.328696	-0.350803	32.3869	45.0421	
+# Heater	Heater.Fl_I.Pt	Heater.Fl_O.Pt	Heater.Fl_I.Tt	Heater.Fl_O.Tt	Heater.Fl_I.ht	Heater.Fl_O.ht	Heater.Fl_I.s	Heater.Fl_O.s	Heater.Fl_I.rhot	Heater.Fl_O.rhot	
+Heater	952.486	947.607	538.273	537.87	-84.1388	-84.8796	-0.327371	-0.328696	32.046	32.3869	
+# Looppipe	Looppipe.Fl_I.Pt	Looppipe.Fl_O.Pt	Looppipe.Fl_I.Tt	Looppipe.Fl_O.Tt	Looppipe.Fl_I.ht	Looppipe.Fl_O.ht	Looppipe.Fl_I.s	Looppipe.Fl_O.s	Looppipe.Fl_I.rhot	Looppipe.Fl_O.rhot	
+Looppipe	942.753	942.745	536.22	536.22	-96.7875	-96.7875	-0.350803	-0.350803	45.0421	45.042	
+# Sunshot	Sunshot.Fl_I.Pt	Sunshot.Fl_O.Pt	Sunshot.Fl_I.Tt	Sunshot.Fl_O.Tt	Sunshot.Fl_I.ht	Sunshot.Fl_O.ht	Sunshot.Fl_I.s	Sunshot.Fl_O.s	Sunshot.Fl_I.rhot	Sunshot.Fl_O.rhot	
+Sunshot	942.745	2669.4	536.22	580.575	-96.7877	-84.1388	-0.350803	-0.340424	45.0422	47.8836	
+# TsPump	TsPump.Fl_I.Pt	TsPump.Fl_O.Pt	TsPump.Fl_I.Tt	TsPump.Fl_O.Tt	TsPump.Fl_I.ht	TsPump.Fl_O.ht	TsPump.Fl_I.s	TsPump.Fl_O.s	TsPump.Fl_I.rhot	TsPump.Fl_O.rhot	
+TsPump	942.745	942.745	536.22	536.22	-96.7875	-96.7877	-0.350803	-0.350803	45.042	45.0422	
+# Valve1	Valve1.Fl_I.Pt	Valve1.Fl_O.Pt	Valve1.Fl_I.Tt	Valve1.Fl_O.Tt	Valve1.Fl_I.ht	Valve1.Fl_O.ht	Valve1.Fl_I.s	Valve1.Fl_O.s	Valve1.Fl_I.rhot	Valve1.Fl_O.rhot	
+Valve1	2669.4	1806.07	580.575	567.936	-84.1388	-84.1388	-0.340424	-0.334385	47.8836	44.036	
+# Valve2	Valve2.Fl_I.Pt	Valve2.Fl_O.Pt	Valve2.Fl_I.Tt	Valve2.Fl_O.Tt	Valve2.Fl_I.ht	Valve2.Fl_O.ht	Valve2.Fl_I.s	Valve2.Fl_O.s	Valve2.Fl_I.rhot	Valve2.Fl_O.rhot	
+Valve2	1806.07	952.486	567.936	538.273	-84.1388	-84.1388	-0.334385	-0.327371	44.036	32.046	

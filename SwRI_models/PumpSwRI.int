@@ -1,0 +1,299 @@
+/*******************************************************************************a
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __PUMP_SwRI__
+#define __PUMP_SwRI__
+
+#include <InterpIncludes.ncp>
+
+class PumpSwRI extends Element{
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+/*
+  title =
+"               FN_PUMP ELEMENT
+
+              ---------------
+             |               |---> Fl_O
+    Fl_I --->|     Pump      |
+             |               |---> Sh_O
+              ---------------
+                    |
+                    V
+         socket: S_Map
+     socketType: FN_PUMP_MAP
+        returns: head, trq
+";
+*/
+
+  description = isA() + " calculates the performance of a pump element.";
+
+  usageNotes =
+"
+
+- This element works by determining the exit conditions based on either
+user supplied or subelement calculated values of torque and head.
+
+- The element takes weight flow as input and determines an exit pressure.
+
+- There is a default solver independent and dependent available that will vary the
+weight flow until the calculated exit pressure matches the exit pressure
+seen at the port.
+
+- The user must supply an initial guess for the weight flow.
+
+- The inertia is kept in the mechanical port.  The user should set the value
+directly there (Sh_O.inertia).
+
+
+";
+
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+  real dht {
+    value = 0.0; IOstatus = OUTPUT; units = BTU_PER_LBM;
+    description = "Actual specific enthalpy change";
+  }
+  real dhtIdeal {
+    value = 0.0; IOstatus = OUTPUT; units = BTU_PER_LBM;
+    description = "Ideal specific enthalpy change";
+  }
+  real eff {
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Compressor efficiency";
+  }
+  real effDes {
+    value = 1.0; IOstatus = INPUT; units = NONE;
+    description = "Compressor efficiency at cycle design point";
+  }
+  real gearRatio {
+    value = 1.0; IOstatus = OUTPUT; units = NONE;
+    description = "Gear ratio on mechanical connection";
+  }
+  real head {
+    value = 0.0; IOstatus = OUTPUT; units = FT;
+    description = "Pump head";
+  }
+  real Nmech {
+    value = 0.0; IOstatus = OUTPUT; units = RPM;
+    description = "Rotational speed (after gear ratio applied)";
+  }
+  real PR {
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Pressure ratio calculated from pump characteristics";
+  }
+  real PRdes {
+    value = 1.0; IOstatus = INPUT; units = NONE;
+    description = "Total-to-total pressure ratio at cycle design point";
+  }
+  // real PRg{
+  //   value = 0.0; IOstatus = OUTPUT; units = NONE;
+  //   description = "Guess for pressure ratio calculated from fluid ports";
+  // }
+  real pwr {
+    value = 0.0; IOstatus = OUTPUT; units = HORSEPOWER;
+    description = "Compressor power";
+  }
+  real trq {
+    value = 0.0; IOstatus = OUTPUT; units = FT_LBF;
+    description = "Compressor torque";
+  }
+  // real W {
+  //   value = 0.0; IOstatus = INPUT; units = LBM_PER_SEC;
+  //   description = "Compressor weight flow";
+  // }
+
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+
+  // FLUID PORTS
+
+  FluidInputPort Fl_I{
+    description = "Incoming flow";
+  };
+
+  FluidOutputPort Fl_O{
+    description = "Exiting flow";
+  };
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  ShaftOutputPort Sh_O{
+    description = "Mechanical connection";
+  }
+
+  // FLOW STATIONS
+
+  FlowStation Fl_Oi{
+    description = "Ideal exit conditions";
+  }
+
+  // SOCKETS
+
+  // Socket S_map {
+  //   allowedValues = { "trq", "head" }
+  //   socketType= "FN_PUMP_MAP";
+  //   description = "Pump performance map";
+  // }
+
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENT  ******
+  //------------------------------------------------------------
+  // Independent ind_W{
+  //   varName = "W";
+  //   autoSetup = TRUE;
+  //   description = "Varies the weight flow";
+  // }
+  //
+  // Dependent dep_PR{
+  //   eq_lhs = "PR";
+  //   eq_rhs = "PRg";
+  //   autoSetup = TRUE;
+  //   description = "Compares the pressure ratios calculated from the ports and the map";
+  // }
+  //------------------------------------------------------------
+  // ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //   ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+  Option switchDes{
+    allowedValues = { DESIGN, OFFDESIGN }	//default is DESIGN
+    description = "Design mode switch indicator [DESIGN / OFFDESIGN]";
+    trigger = 0;
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  void calculate() {
+
+    if ( THERMPACKAGE != "REFPROP" ) {
+      cout << "WARNING, THERMPACKAGE " << THERMPACKAGE << " is not compatible with " << isA() << endl;
+    }
+
+    if( switchDes == DESIGN ) {
+      PR = PRdes;
+      eff = effDes;
+
+      if ( THERMPACKAGE != "REFPROP" ) {
+        PR = 0.0;
+        cout << "WARNING: Setting PR to " << PR << endl;
+      }
+      if ( THERMPACKAGE == "REFPROP" ) {
+        if ((Fl_I.xt < 998) && (Fl_I.xt > 1)) {
+          PR = 0.0;
+          cout << "WARNING: Vapor Phase " << Fl_I.xt << " Setting PR to " << PR << endl;
+        }
+      }
+    }
+
+    //-----------------------------------------------------------------
+    // Determine the mechanical speed from the shaft and gear ratio
+    //-----------------------------------------------------------------
+    Nmech = gearRatio * Sh_O.Nmech;
+
+    //-----------------------------------------------------------------------
+    // Copy inlet conditions to outlet port
+    //-----------------------------------------------------------------------
+    Fl_O.copyFlow( "Fl_I" );
+
+    //-----------------------------------------------------------------
+    // Calculate the outlet pressure from pressure ratio and inlet pressure
+    //-----------------------------------------------------------------
+    real Pout = 0.0;
+    Pout = PR * Fl_I.Pt;
+
+    //-----------------------------------------------------------------
+    // Calculate the head based on pressure ratio
+    //-----------------------------------------------------------------
+    head = (Pout - Fl_I.Pt) / Fl_I.rhot / C_GRAVITY;
+
+    //-----------------------------------------------------------------
+    // Calculate Power to accomodate the required head
+    //-----------------------------------------------------------------
+    // pwr = Fl_I.rhot * C_GRAVITY * (Fl_I.W / Fl_I.rhot) * head / eff / C_HPtoFT_LBF_PER_SEC
+    pwr = -C_GRAVITY * (Fl_I.W) * head / eff / C_HPtoFT_LBF_PER_SEC;
+
+    //----------------------------------------------------------------------
+    // Determine the torque transmitted to the shaft
+    //----------------------------------------------------------------------
+    trq =  C_HP_PER_RPMtoFT_LBF * pwr / Nmech;
+
+    //-----------------------------------------------------------------
+    // Execute the map subelement to determine the head and torque
+    //-----------------------------------------------------------------
+    // if ( !S_map.isEmpty() ){
+    //   S_map.execute();
+    // }
+
+    //-----------------------------------------------------------------
+    // Determine the exit pressure based on pump characteristics
+    //-----------------------------------------------------------------
+
+    // dht = -trq * Nmech * 2 * PI / 60 / C_BTUtoFT_LBF / W / 12;
+    // eff = head / C_BTUtoFT_LBF / dht / 12;
+    // real PtOut = head * Fl_I.rhot/12/12/12  + Fl_I.Pt;
+    // PR = PtOut / Fl_I.Pt;
+
+    //---------------------------------------------------------------
+    // Convert the units on the torque from lbin to lbft
+    //---------------------------------------------------------------
+    // trq = trq / 12;
+
+    //---------------------------------------------------------------
+    // Set the exit conditions (done to get ht right)
+    //---------------------------------------------------------------
+    dht = -pwr / C_BTU_PER_SECtoHP / Fl_I.W;
+    // cout << "** dht " << dht << endl;
+    Fl_O.setTotal_hP( Fl_I.ht + dht, Pout );
+
+    //-----------------------------------------------------------------
+    // Determine the power for output
+    //-----------------------------------------------------------------
+    // pwr = -dht * W * C_BTUtoFT_LBF / C_HPtoFT_LBF_PER_SEC;
+
+    //-----------------------------------------------------------------
+    // Set values in the ports
+    //-----------------------------------------------------------------
+    Sh_O.trq = trq;
+
+  }//End calculate
+
+}//End element
+
+#endif

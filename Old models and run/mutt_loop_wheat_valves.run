@@ -1,0 +1,268 @@
+/* ******
+Name: mutt_loop
+Version: 0.2
+
+Author: Cole Replogle <cole.replogle@swri.org>
+
+
+Last Updated On: 12/20/2022
+Last updated by: Owen Pryor <owen.pryor@swri.org>
+
+
+Description:
+Simple cycle for sub-scale multiphase test loop. This model uses
+the REFPROP thermo package for CO2 and manually implements "tear" streams using
+FluidStartStop_2phase elements to handle the closed cycle
+
+This model uses helper functions and elements provided by SwRI_EMI.
+    * restartFunctionsSwRI.fnc
+        * loadIndependents("initial.inp");
+            * Load "restart" values from pre-computed independent values, if the file exists
+        * saveIndependents("restart.dat")
+            * Save the current independent values to a file.
+            * This file may be copied to "initial.inp" to provide initial conditions for
+              subsequent solutions.
+    * Element SolverReportSwRI solverReport
+        * Generate a solver diagnostic report
+        * Report parameters of interest at each sub-iteration to diagnose convergence issues.
+    * Element FlowSheetSwRI flowSheet
+        * Save process flow diagrams for each case
+    * Element StateDiagramSwRI stateDiagram
+        * Save Ph and Ts diagrams for each case
+
+Usage:
+
+* Execution
+    1. Source swrienv.bat in the root of SwRI_EMI
+    2a. Execute the run script using swrinpss
+        > swrinpss mutt_loop.run
+    2b. Execute the run script using runnpss
+        > runnpss %SwRI_TOP%\setPaths.fnc mutt_loop.run
+
+* REFPROP
+To use the refprop thermo package using NPSS v 2.6.1, the fluids and mixtures folders and
+refprop.dll should be copied into the directory the case is being executed from. This is a
+hardcoded requirement when using the refprop thermo package.
+
+****** */
+
+// ----------------------------------------------------------------------------
+//     Define and load additional files
+// ----------------------------------------------------------------------------
+
+#include <restartFunctionsSwRI.fnc>
+
+#define EVAL 1
+#define MODEL_TOP ..
+
+#define STATEDIAGRAMS 0
+#define FLOWSHEETS 0
+
+// Model Parameters
+
+#define COMP       co2.fld
+#include <$MODEL_TOP/mutt_loop_wheat_valves.mdl>
+
+// #define CASENAME Test
+// #define CASEDIR ./Cases/Test
+// string caseName = "$CASENAME";
+// string caseDir = "$CASEDIR";
+
+// ----------------------------------------------------------------------------
+//     Solver Configurations
+// ----------------------------------------------------------------------------
+
+solver.defaultPerturbation=0.01;
+solver.maxIterations = 100;
+solver.maxJacobians = 25;
+
+autoSolverSetup();
+
+ESOregCreate(1019518,9,"Secant Solver didn't converge");
+
+// #define SOLVERDEBUG 1
+// Element SolverReportSwRI solverReport {};
+
+// ----------------------------------------------------------------------------
+//     Generate output files
+// ----------------------------------------------------------------------------
+
+Element FlowSheetSwRI flowSheet {
+  basename = caseDir+"/"+caseName;
+  postsolverSequence();
+  verbLevels = {0, 1, 2 };
+};
+
+
+Element StateDiagramSwRI stateDiagram {
+  stateDiagrams.basename = caseDir+"/"+caseName;
+  comp = "$COMP";
+  // Synchronize as a work around
+  stateDiagrams.comp = comp;
+  postsolverSequence();
+};
+
+
+string strList[];
+int i;
+
+// I/O
+//OutFileStream os_printClosedBrayton {filename = "cout"; }
+// OutFileStream os_printColumn {filename = caseDir+"/"+caseName+"_column.out"; }
+// OutFileStream os_printRow {filename = caseDir+"/"+caseName+"_row.out"; }
+// #include <$MODEL_TOP/data/printClosedBrayton.view>;
+// #include <$MODEL_TOP/data/myReport.fnc>;
+#include <$MODEL_TOP/data/reporting.inc>;
+
+
+// ----------------------------------------------------------------------------
+//     Functions to update initial conditions
+// ----------------------------------------------------------------------------
+
+void updateFluidComp( string comp ) {
+  // Flow Starts
+  TsPump.Fl_O.comp = comp;
+
+  // State Diagrams
+  stateDiagram.comp = comp;
+  stateDiagrams.comp = comp;
+  // Vapor Dome
+  if ( ! sys.fileExists(comp+".dome") ) {
+    stateDiagrams.vaporDome(comp,51);
+  }
+}
+
+
+void updateTS(real pTear, real hTear, real mfr) {
+	TsPump.Pt = pTear;
+	//TsPump.Tt = tTear;
+	TsPump.ht = hTear;
+	TsPump.W = mfr;
+}
+
+
+void updatePump(real EFF, real PR, real NMECH) {
+	Sunshot.effDes = EFF;
+	Sunshot.PRdes = PR;
+	Sh.Nmech = NMECH;
+}
+
+
+void updateValve1( real CV1, real VALVE1RATIO, real XT1) {
+	Valve1.Cv = CV1;
+	Valve1.dP = VALVE1RATIO;  // not defined as a ratio
+	Valve1.Xt = XT1;	
+}
+
+// void updateValve1( real DP) {
+	
+	// Valve1.dP_in = DP; 
+	
+// }
+
+
+void updateValve2( real CV2, real VALVE2RATIO, real XT2) {
+	Valve2.Cv = CV2;
+	Valve2.dP = VALVE2RATIO;
+	Valve2.Xt = XT2;
+}
+
+void updateHeater(real DPQP, real ENTHALPY) {
+	Heater.dPqP = DPQP;
+	Heater.hout = ENTHALPY;
+}
+
+void updateCooler(real DPQP, real TEMP) {
+	Cooler.dPqP = DPQP;
+	Cooler.Tout = TEMP;
+}
+
+void updatePressureLoss(real ID, real LENGTH, real ELBOWS, real TEES, real ROUGHNESS) {
+
+	Looppipe.ID = ID;
+	Looppipe.dL = LENGTH;
+	Looppipe.elbows = ELBOWS;
+	Looppipe.tees = TEES;
+	Looppipe.e = ROUGHNESS;
+
+}
+
+
+// ----------------------------------------------------------------------------
+//     Solver Configuration
+// ----------------------------------------------------------------------------
+
+ // Independent ind_GenLoad {
+	// varName = "Gen.elecLoad_in";
+	// autoSetup = TRUE;
+ // }
+ 
+Dependent dep_PumpPin {
+    eq_lhs = "TsPump.Fl_I.Pt";
+    eq_rhs = "PLOW";
+    autoSetup = TRUE;
+ }
+ 
+ Independent ind_Valve1Cv {
+	varName = "Valve1.Cv";
+	autoSetup = TRUE;
+ }
+ 
+  // Independent ind_Valve2Cv {
+	// varName = "Valve2.Cv";
+	// autoSetup = TRUE;
+ // }
+ 
+ 
+// autoSolverSetup();
+//solver.addIndependent("ind_Nmech");
+solver.removeDependent("Sh.integrate_Nmech");
+
+
+// ---------------------------------------------------------------------------- 
+//     Load pre-calculated Independent Variable States
+// ----------------------------------------------------------------------------
+
+//loadIndependents(caseDir+"/"+"initial.inp");
+//loadIndependents(caseDir+"/"+caseName+".inp");
+//loadIndependents("initial.inp");
+
+// ----------------------------------------------------------------------------
+//     Run the Simulation
+// ----------------------------------------------------------------------------
+
+#include "genSolverDebug.int"
+
+void runCase() {
+  CASE++;
+  updateSolverDebugVarList();
+  dumpSolverIndep();
+  run();
+
+  // // Check for Cmp inlet in the two phase region
+  // real CmpCheck = 0;
+  // if (Cmp.Fl_I.xt > 1) { CmpCheck = 1; }
+
+  if (solver.converged) {
+    cout << "printColumn.update();" << endl;
+    printColumn.update();
+  }
+
+  // printRow.update(); is causing an exception if colver.converged==0
+  cout << "printRow.update();" << endl;
+  // printRow.update();
+  updateViewers();
+  displayRowViewers();
+
+  myReport();
+  errHandler.clear();
+
+  // Save new Independent Variable States
+  cout << "debug: Valve1 Cv = " << Valve1.Cv << endl;
+  cout << "debug: Valve2 Cv = " << Valve2.Cv << endl;
+  cout << "saveIndependents(*);" << endl;
+  saveIndependents(caseDir+"/"+caseName+"_"+toStr(CASE)+"_restart.dat");
+  
+  // Flowstation FS;
+  cout << "Cooler inlet quality = " << Cooler.Fl_I.xt << endl;
+}

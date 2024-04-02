@@ -1,0 +1,684 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __COMPRESSOR_SwRI_
+#define __COMPRESSOR_SwRI_
+
+
+#include <InterpIncludes.ncp>
+
+class CompressorSwRI extends Element {
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+  title = "";
+
+  description = "The " + isA() + " element performs
+  high-level compressor performance calculations.  The performance
+  is calculated in terms of efficiency and total-to-total pressure
+  ratio.  This element is usually used with a map subelement.";
+
+  usageNotes = isA() +
+  "
+
+- The compressor performance is determined by pressure ratio (PR) and
+efficiency (eff). If the S_map socket is empty then the performance is
+determined by setting pressure ratio and efficiency using PRdes and effDes
+during DESIGN and by setting PRbase and effBase during OFFDESIGN.
+If S_map has a subelement plugged into it, then PRbase,
+effBase, and WcBase are set by the S_map subelement.  In either case, PR and
+eff equal the values input for PRdes and effDes during DESIGN.
+
+- The S_map socket is setup such that it allows the subelement to only set
+effBase, PRbase, and WcBase.  It does not make any assumptions about how the
+subelement performs its calculations, as long as the subelement ultimately sets
+effBase, PRbase, and WcBase.  If you have a map that does not return adiabatic
+efficiency (say, dT/T instead), then the subelement will have to use the map
+result to calculate efficiency so that effBase can be set by the subelement.
+
+- Audit factors are available to the user for adjusting the map values of
+efficiency, corrected weight flow, and pressure ratio.  The unadjusted values
+for efficiency, corrected weight flow, and pressure ratio are effBase, WcBase,
+and PRbase respectively. The values for effBase, WcBase, and PRbase are set
+when the S_map subelement is called.  After the audit factors are applied,
+resulting efficiency, corrected weight flow, and pressure ratio are eff,
+WcCalc, and PR, respectively.
+
+- Audit factors are used when the switchAud Option Switch is set
+to AUDIT.  Audit factors are used as follows:
+     eff = s_effAud * effBase + a_effAud;
+     WcCalc = s_WcAud * WcBase + a_WcAud;
+     PR = s_PRaud * PRbase + a_PRbase;
+
+- Solver independents and dependents are usually contained in the compressor
+map subelement, which plugs into the S_map socket (see CompressorRlineMap).
+The solver is often used to drive the scaled map corrected weight flow, WcCalc
+(which includes audit factors, if they are used) to equal the actual corrected
+compressor inlet flow.
+
+- effPoly is an output only variable.  To input effPoly in design point
+set effDes as a solver independent and form a solver dependent to drive
+effPoly to the desired value.
+
+- Any number of BleedInterStageOutPorts can be requested at run time.
+The weight flow fraction, work fraction, and pressure fraction are input
+directly into this port which then determines the bleed exit conditions.
+
+- The ShaftOutputPort (Sh_O) is used to share information between the compressor
+and the shaft element to which it is connected.  Mechanical speed is passed to
+the compressor from the shaft using Sh_O.Nmech.  The compressor rotational inertia
+is set directly in the ShaftOuputPort using Sh_O.inertia.  The compressor determines
+torque required and passes this torque to the shaft via the mechanical port using
+Sh_O.trq.";
+
+
+  background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+  real a_effAud {
+    value = 0;  IOstatus = INACTIVE;  units = NONE;
+    description = "Audit factor adder applied to adiabatic efficiency";
+  }
+  real a_PRaud {
+    value = 0;  IOstatus = INACTIVE;  units = NONE;
+    description = "Audit factor adder applied to adiabatic efficiency base value, PRbase";
+  }
+  real a_WcAud {
+    value = 0;  IOstatus = INACTIVE;  units = LBM_PER_SEC;
+    description = "Audit factor adder applied to corrected weight flow base value, WcBase";
+  }
+  real eff {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Adiabatic efficiency.  Equals effDes during design.  Calculated using effBase, s_effAud, and a_effAud (if in AUDIT mode) during off-design";
+  }
+  real effBase {
+    value = 1; IOstatus = OUTPUT ; units = NONE;
+    description = "Adiabatic efficiency, before audit factors are applied.  Calculated and set by S_map socket during off-design if S_map socket is filled.";
+  }
+  real effDes {
+    value = 1; IOstatus = INPUT; units = NONE;
+    description = "Adiabatic efficiency at cycle design point";
+  }
+  real effPoly {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Polytropic efficiency";
+  }
+  real first {
+    value = 0; IOstatus = OUTPUT ; units = NONE;
+    description="First time through indicator for postcreate function";
+  }
+  real N {
+    value = 0;  IOstatus = OUTPUT;  units = RPM;
+    description = "Physical speed, equals Sh_O.Nmech";
+  }
+  real Nc {
+    value = 0;  IOstatus = OUTPUT;  units = RPM;
+    description = "Corrected speed, N / sqrtTheta";
+  }
+  real NcDes {
+    value = 0;  IOstatus = OUTPUT;  units = RPM;
+    description = "Corrected speed at cycle design point";
+  }
+  real NcqNcDes {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Ratio of current corrected speed to design corrected speed, Nc / NcDes";
+  }
+  real Ndes {
+    value = 0;  IOstatus = OUTPUT;  units = RPM;
+    description = "Design point physical speed";
+  }
+  real NpctDes {
+    value = 100.; IOstatus = INPUT ; units = NONE;
+    description="Percent of current corrected speed to design corrected speed, (Nc / NcDes) * 100";
+  }
+  real NcPct {
+    value = 0; IOstatus = OUTPUT ; units = NONE;
+    description = "Percent corrected speed";
+  }
+  real NcqNcDesPct {
+    value = 0; IOstatus = OUTPUT ; units = NONE;
+    description="Percent of current corrected speed to design corrected speed, (Nc / NcDes) * 100";
+  }
+  real PR {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Total-to-total pressure ratio.  Equals PRdes during design.  Calculated using PRbase, s_PRaud, and a_PRaud (if in AUDIT mode) during off-design";
+  }
+  real PRbase {
+    value=1; IOstatus = OUTPUT ; units = NONE;
+    description = "Total-to-total pressure ratio, before application of component modifiers.  Set by S_map socket during off-design if S_map socket is filled.";
+  }
+  real PRdes {
+    value=1; IOstatus = INPUT ; units = NONE;
+    description = "Total-to-total pressure ratio at cycle design point";
+  }
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total power supplied to the shaft (total power - bleed power)";
+  }
+  real pwrBldSum {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total power delta due to bleed flows";
+  }
+  real Qhx {
+    value = 0;  IOstatus = INPUT;  units = BTU_PER_SEC;
+    description = "Heat transfer absorbed by (+) or returned from (-) metal mass.  Set by the S_Qhx if the socket is filled.";
+  }
+  real s_effAud {
+    value = 1;  IOstatus = INACTIVE;  units = NONE;
+    description = "Audit factor scalar applied to adiabatic efficiency base value, effBase";
+  }
+  real s_PRaud {
+    value = 1;  IOstatus = INACTIVE;  units = NONE;
+    description = "Audit factor scalar applied to pressure ratio base value, PRbase";
+  }
+  real s_WcAud {
+    value = 1;  IOstatus = INACTIVE;  units = NONE;
+    description = "Audit factor scalar applied to corrected weight flow base value, WcBase";
+  }
+  real SMN {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Stall margin at constant speed.  Calculated and set by S_map socket.";
+  }
+  real SMW {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Stall margin at constant flow.  Calculated and set by S_map socket.";
+  }
+  real sqrtTheta {
+    value = 0; IOstatus = OUTPUT;  units = NONE;
+    description = "sqrt(Fl_I.Tt/C_TSTD)";
+  }
+  real WbldSum {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_SEC;
+    description = "Total bleed weight flow";
+  }
+  real theta {
+    value = 0; IOstatus = OUTPUT;  units = NONE;
+    description = "Fl_I.Tt/C_TSTD";
+  }
+  real TR {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Temperature ratio";
+  }
+  real TRdes {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Temperature ratio at cyclce design point";
+  }
+  real trq {
+    value = 0;  IOstatus = OUTPUT;  units = FT_LBF;
+    description = "Torque required by the compressor";
+  }
+  real Wc {
+    value = 0; IOstatus=OUTPUT; units = LBM_PER_SEC;
+    description="Incoming corrected weight flow, Fl_I.W * sqrtTheta / (Fl_I.Pt / C_PSTD)";
+  }
+  real WcBase {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_SEC;
+    description = "Corrected flow, before audit factors are applied.  Set by S_map socket during off-design if S_map socket is filled.";
+  }
+  real WcCalc {
+    value = 0; IOstatus=OUTPUT; units=LBM_PER_SEC;
+    description = "Corrected flow into compressor.  Equals WcDes during design.  Calculated using WcBase, s_WcAud, and a_WcAud (if in AUDIT mode) during off-design";
+  }
+  real WcDes {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_SEC;
+    description = "Corrected weight flow at cycle design point";
+  }
+  real WcqWcDes {
+    value = 0; IOstatus=OUTPUT; units=NONE;
+    description = "Ratio of corrected weight flow to design corrected weight flow, Wc / WcDes";
+  }
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+  Option switchAud {
+    allowedValues = { "BASE", "AUDIT" }
+    description = "Determines if the audit factors are applied to effBase, WcBase, and PRbase values (s_effAud, a_effAud, s_WcAud, a_WcAud, s_PRaud, and a_PRaud)";
+    IOstatus = INPUT;
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN };
+    description = "Determines if the element is in design or off-design mode";
+    IOstatus = INPUT;
+    rewritableValues = FALSE;
+  }
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary incoming flow";
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exiting flow";
+  }
+
+// FUEL PORTS
+
+// BLEED PORTS
+//create lists for the user supplied objects
+  string bleedPortList[];
+  bleedPortList {
+	ptrType = "InterStageBleedOutPort";
+	description = "List of the user-created InterStageBleedOutPort objects";
+	internal = TRUE;  // maintained internal to class by postcreate()
+	IOstatus = OUTPUT;
+  }
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+  ShaftOutputPort Sh_O {
+    description = "Mechanical connection to the shaft";
+  }
+
+// FLOW STATIONS
+
+  FlowStation Fl_Otemp {
+    description = "Temporary FlowStation used to calculate ideal and bleed conditions";//change to private when possible
+  }
+
+// SOCKETS
+
+  Socket S_map {
+    allowedValues = { "effBase", "PRbase", "WcBase", "SMW", "SMN" }
+    description = "Socket to calculate compressor map performance";
+    socketType = "COMPRESSOR_MAP";
+  }
+
+  Socket S_Qhx {
+    allowedValues = { "Qhx" };
+    description = "Thermal storage socket";
+    socketType = "HEATTRANSFER";
+  }
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged(string name, any oldVal) {
+
+	// if the value of switchDes or switchAud change...
+	if ( name == "switchDes" || name == "switchAud" ){
+		// If in design mode, then effBase, PRbase, and WcBase are outputs
+		if ( switchDes == DESIGN ){
+			effBase.IOstatus = OUTPUT;
+			PRbase.IOstatus  = OUTPUT;
+			WcBase.IOstatus  = OUTPUT;
+		}
+		// If in off-design mode and the S_map socket is filled, then the "base" variables are outputs set by the S_map socket
+		else if( switchDes == OFFDESIGN && !S_map.isEmpty() ) {
+			effBase.IOstatus = OUTPUT;
+			PRbase.IOstatus  = OUTPUT;
+			WcBase.IOstatus  = OUTPUT;
+		}
+		// If in off-design mode and the S_map socket is filled, then the "base" variables are inputs set by the user
+		else if ( switchDes == OFFDESIGN && S_map.isEmpty() ) {
+			effBase.IOstatus = INPUT;
+			PRbase.IOstatus  = INPUT;
+			WcBase.IOstatus  = INPUT;
+		}
+
+		// If in off-design and Audit mode, then the audit scalars and adders are inputs
+		if (switchDes == OFFDESIGN  &&  switchAud == "AUDIT" ) {
+			a_effAud.IOstatus = INPUT;
+			a_PRaud.IOstatus  = INPUT;
+			a_WcAud.IOstatus  = INPUT;
+			s_effAud.IOstatus = INPUT;
+			s_PRaud.IOstatus  = INPUT;
+			s_WcAud.IOstatus  = INPUT;
+		}
+		// Otherwise, audit scalars and adders are inactive
+		else {
+			a_effAud.IOstatus = INACTIVE;
+			a_PRaud.IOstatus = INACTIVE;
+			a_WcAud.IOstatus  = INACTIVE;
+			s_effAud.IOstatus = INACTIVE;
+			s_PRaud.IOstatus = INACTIVE;
+			s_WcAud.IOstatus  = INACTIVE;
+		}
+	} // end ( name == "switchDes" || name == "switchAud" )
+  } // end variableChanged()
+
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  void calculate() {
+
+    int i = 0;
+    //-------------------------------------------------------------------------
+    // obtain inlet flow station variables
+    //-------------------------------------------------------------------------
+    real  Win  = Fl_I.W;
+    real  TtIn = Fl_I.Tt;
+    real  PtIn = Fl_I.Pt;
+    real  htIn = Fl_I.ht;
+    real  Sin  = Fl_I.s;
+    real  RtIn = Fl_I.Rt;
+
+	//-----------------------------------------------------------------------
+    // Copy inlet conditions to outlet port and temporary flow station
+    //-----------------------------------------------------------------------
+
+    Fl_O.copyFlow( "Fl_I" );
+    Fl_Otemp.copyFlow( "Fl_I" );
+
+    //-------------------------------------------------------------------------
+    // calculate misc. fluid condition related variables
+    //-------------------------------------------------------------------------
+    real delta = PtIn / C_PSTD ; // ratio of inlet pressure to standard day pressure
+    theta = TtIn / C_TSTD; // ratio of inlet temperature to standard day temperature
+    sqrtTheta = sqrt(theta);
+
+    //-------------------------------------------------------------------------
+    // calculate corrected flow related variables
+    //-------------------------------------------------------------------------
+    Wc =  Fl_I.W * sqrtTheta / delta ;
+
+	// Save off Wp design point value
+    if ( switchDes == DESIGN ){
+      WcDes = Wc;
+    }
+
+	// Fraction of design flow
+    WcqWcDes = Wc / WcDes;
+
+    //-------------------------------------------------------------------------
+    // calculate speed related variables
+    //-------------------------------------------------------------------------
+    real Npct; // NpctDes;
+    N = Sh_O.Nmech; // actual speed, rpm
+    Nc = N / sqrtTheta; // corrected speed
+
+	// Save off N and Nc design point values
+    if ( switchDes == DESIGN ) {
+      Ndes = N;
+      NcDes = Nc;
+    }
+
+	// Percent speed based on user input for NpctDes
+    Npct = NpctDes * N / Ndes;
+    NcqNcDesPct = Npct / sqrtTheta;
+
+	// Fractional and percent of design corrected speed
+    NcqNcDes = Nc / NcDes; // fractional
+    NcPct = Nc / NcDes * 100; // percent
+
+    //-----------------------------------------------------------------------
+    // execute the map, if it exists
+    //-----------------------------------------------------------------------
+    if( !S_map.isEmpty() ) {
+		// Execute the S_map subelement.
+		// This should set effBase, PRbase, WcBase, SMN, and SMW
+         S_map.execute();
+    }
+    else {
+		// If S_map is empty and in design mode, set the "base" values to the design values
+		if( switchDes == DESIGN ) {
+			effBase = effDes;
+			PRbase  = PRdes;
+			WcBase  = WcDes;
+		}
+		// else, the user may input values for effBase, PRbase, and WcBase
+    }
+
+	//----------------------------------------------------------------
+    // if we are in AUDIT mode then the user wishes to adjust
+    // the conditions based on input adders and scalars
+    //----------------------------------------------------------------
+    if( switchAud == "AUDIT" && switchDes == OFFDESIGN ) {
+		//add protection logic for eff audit factors in non-physical regions???
+		eff = s_effAud * effBase + a_effAud;
+		PR = s_PRaud * PRbase + a_PRaud;
+		WcCalc = s_WcAud * WcBase + a_WcAud;
+    }
+	// Otherwise not in AUDIT mode so eff, PR, and WcCalc match the "base" values
+	else {
+		eff = effBase;
+		PR = PRbase;
+		WcCalc = WcBase;
+	}
+
+    //-----------------------------------------------------------------------
+    // compute compressor exit conditions (no bleed)
+    //-----------------------------------------------------------------------
+
+    //-----------------------------------------------------------------------
+    // Determine the ideal exit state based on the pressure ratio.
+    // Calculate the actual exit pressure, use it and the entrance
+    // entropy to set the ideal exit conditions.
+    //-----------------------------------------------------------------------
+
+	// Ideal exit entropy
+	real SidealOut = Sin;
+
+	// Actual exit pressure
+    real PtOut = PR * PtIn;
+
+	// Ideal outlet conditions
+    Fl_Otemp.setTotalSP( SidealOut, PtOut );
+
+	// Ideal outlet enthalpy
+    real  htIdealOut = Fl_Otemp.ht;
+
+    //--------------------------------------------------------------
+    // Efficiency is the driving value.
+    // Determine the actual outlet enthalpy (not including bleed flows
+	// or heat transfer).
+    // Use the enthalpy and the exit pressure to set
+    // the actual exit conditions and then calculate TR.
+    //--------------------------------------------------------------
+	real htOut;
+
+	// Actual outlet enthalpy
+    htOut = ( htIdealOut - htIn ) / eff + htIn;
+
+	// Set fluid outlet conditions
+    Fl_O.setTotal_hP( htOut, PtOut );
+
+	// Temperature ratio
+	TR = Fl_O.Tt / TtIn;
+
+    if( switchDes == DESIGN ) {
+		// Temperature ratio at cycle design point
+		TRdes = TR;
+    }
+
+    //---------------------------------------------------------------------
+    // compute polytropic efficiency
+    //---------------------------------------------------------------------
+
+	// Actual outlet entropy
+	real Sout = Fl_O.s;
+
+	// Term for polytropic efficiency calculation
+    real RtlogPR = RtIn * log( PR );
+
+	// Polytropic efficiency
+    effPoly = RtlogPR / ( RtlogPR + Sout - Sin );
+
+    //--------------------------------------------------------------
+    // determine the overall power prior to bleed calculations
+    //--------------------------------------------------------------
+    pwr = Win * (  htIn - htOut ) * C_BTU_PER_SECtoHP;
+
+    //-----------------------------------------------------------------------
+    // loop through the bleed port list to get summation of bleed flow and
+	// summation of bleed power
+    //-----------------------------------------------------------------------
+
+	// Set bleed flow rate and power back to zero (set in previous iteration)
+	// because the "for" loop below is about to recalculate these values
+    WbldSum = 0.;
+    pwrBldSum = 0.;
+
+	// start the loop
+    for(i=0; i< bleedPortList.entries(); ++i) {
+
+		//---------------------------------------------------------------------
+		// Tell the port to execute.
+		// The bleed port will determine its exit condtions from the inlet
+		// and outlet conditions as well as the pressure fraction and work
+		// fraction that are input into the bleed port (see bleed port documentation)
+		//---------------------------------------------------------------------
+		bleedPortList[i] -> updateBleed();
+
+		//---------------------------------------------------------------------
+		// get the bleed station from the port
+		//---------------------------------------------------------------------
+		Fl_Otemp.copyFlow( bleedPortList[i] -> getStation() );
+
+		//---------------------------------------------------------------------
+		// obtain flow and enthalpy from the bleed station
+		//---------------------------------------------------------------------
+		real WbldOut = Fl_Otemp.W;
+		real htBldOut = Fl_Otemp.ht;
+
+		//---------------------------------------------------------------------
+		// sum the bleed flow rates
+		//---------------------------------------------------------------------
+		WbldSum = WbldSum + WbldOut;
+
+		//---------------------------------------------------------------------
+		// Determine the bleed power.
+		// The bleed power is the power that was NOT required because the
+		// compresor did not pump the bleed all the way up to the exit enthalpy
+		//---------------------------------------------------------------------
+		real pwrBldOut = WbldOut * (  htBldOut - htOut ) * C_BTU_PER_SECtoHP;
+
+		// Sum all of the bleed powers
+		pwrBldSum = pwrBldSum + pwrBldOut;
+
+    } // end "for" loop through the bleedPortList
+
+    //----------------------------------------------------------------------
+    // Determine the power supplied to the shaft
+    // (overall power - total bleed power)
+    //----------------------------------------------------------------------
+	pwr = pwr - pwrBldSum;
+
+	//----------------------------------------------------------------------
+    // Determine the torque supplied to the shaft (usually negative)
+    //----------------------------------------------------------------------
+    trq =  C_HP_PER_RPMtoFT_LBF * pwr / N;
+
+	//----------------------------------------------------------------------
+    // Pass torque to the shaft output port
+    //----------------------------------------------------------------------
+    Sh_O.trq = trq;
+
+    //---------------------------------------------------------------------
+    // adjust the exit flow for bleed removal
+    //---------------------------------------------------------------------
+    real Wout = Win - WbldSum;
+
+	//----------------------------------------------------------------------
+    // set the exit flow
+    //----------------------------------------------------------------------
+    Fl_O.W = Wout;
+
+    //---------------------------------------------------------------------
+    // thermal storage calculations
+    //---------------------------------------------------------------------
+    if ( !S_Qhx.isEmpty() ) {
+		// Execute the S_Qhx socket if it exists.
+		// This should set the value for Qhx.
+		S_Qhx.execute();
+    }
+
+    //---------------------------------------------------------------------
+    // adjust the exit conditions for the thermal mass heat storage
+    //---------------------------------------------------------------------
+    htOut = Fl_O.ht - Qhx / Fl_O.W;
+
+	// Set the actual outlet conditions
+    Fl_O.setTotal_hP( htOut, Fl_O.Pt );
+
+  } // end the calculate() function
+
+
+
+//-------------------------------------------------------------------------
+// **** Allow creation of bleed ports and thermal masses on demand ******
+//-------------------------------------------------------------------------
+  void postcreate(string name) {
+    if ( first == 0 ) {
+      ++first;
+      // Set Option variables to default values, force variableChanged() after all Option variables exist
+      //switchMap = "NONE";
+    }
+    if( name -> hasInterface( "InterStageBleedOutPort" ) ) {
+      bleedPortList.append( name );
+      needVerify();
+    }
+  } // end postcreate function
+
+
+//------------------------------------------------------------
+//   ******* VERIFY *******
+//------------------------------------------------------------
+
+  int verify() {
+
+    int i;
+    for(i=0; i<bleedPortList.entries(); ++i) {
+      bleedPortList[i]->setBleedStation("Fl_I","Fl_O");
+    }
+
+    //set value of switchMap when S_map is empty, other values set in map verify functions
+    //if( S_map.isEmpty() ) {
+    //  switchMap = "NONE";
+    //}
+
+    return Element::verify();
+  } // end verify() function
+
+} // end the Compressor element class
+
+#ifdef __NPSSCONVERTER__
+// _STD_C_INCLUDES += "\n#include <InterStageBleedOutPort.H>";  //fixme
+#endif
+
+
+#endif

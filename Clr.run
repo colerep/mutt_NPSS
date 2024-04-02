@@ -1,0 +1,92 @@
+// Viewers  
+
+//Model Parameters 
+real Tcool_F { units = "F"; value = 45; } // Cooler inlet temp
+real approach_SI { units = "none"; value = 7.2; }
+real Wcool_SI { units = "kg/sec"; value = 381557*2.2/3600; } 
+real Pcool_SI { units = "Pa"; value = 101325;} 
+real Tcycle_SI { units = "C"; value = 36.6667; } 
+real Tcycle_exit_SI { units = "C"; value = 20; } 
+real Pcycle_SI { units = "bar"; value = 85;} 
+real Wcycle_SI { units = "kg/sec"; value = 80;}    
+
+real Tcool { units = "R"; value = convertUnits("Tcool_F","R");} 
+real Wcool { units = "lbm/sec"; value = convertUnits("Wcool_SI","lbm/sec");} 
+real Pcool { units = "psia"; value = convertUnits("Pcool_SI","psia");} 
+real Tcycle { units = "R"; value = convertUnits("Tcycle_SI","R");}
+real Tcycle_exit { units = "R"; value = convertUnits("Tcycle_exit_SI","R");}
+real Pcycle { units = "psia"; value = convertUnits("Pcycle_SI","psia");} 
+real Wcycle { units = "lbm/sec"; value = convertUnits("Wcycle_SI","lbm/sec");} 
+
+real approach { units = "none";}
+approach = 13; 
+
+// Model File 
+#include "Clr.mdl" 
+real answer; 
+
+Clr.nNodes = 100; 
+Clr.approach_des = approach;   
+
+// ----------------------------------------------------------------------------
+//     Solver Configurations
+// ----------------------------------------------------------------------------
+
+// solver.defaultPerturbation=0.01;
+// solver.maxIterations = 100;
+// solver.maxJacobians = 25;
+
+// autoSolverSetup();
+
+// ESOregCreate(1019518,9,"Secant Solver didn't converge");
+
+// ----------------------------------------------------------------------------
+    // Solver Configuration
+// ----------------------------------------------------------------------------
+
+
+
+
+
+run();
+CASE++;	 
+
+answer = Clr.Fl_O1.Tt-FsCool.Fl_O.Tt;
+
+cout << "DESIGN CASE" << endl;
+cout << "Cooler Q [kW]: " << (Clr.Q*.001055*1000) << endl;
+cout << "Cooler Effectiveness: " << Clr.effect_des << endl;
+cout << "CO2 Inlet Temp [C]:  " << (Clr.Fl_I1.Tt/1.8-273.15) << endl;
+cout << "CO2 Outlet Temp [C]:  " << (Clr.Fl_O1.Tt/1.8-273.15) << endl;
+cout << "CO2 Inlet Pressure [bar]:  " << (Clr.Fl_I1.Pt/14.5038) << endl;
+cout << "CO2 Outlet Pressure [bar]:  " << (Clr.Fl_O1.Pt/14.5038) << endl;
+cout << "Coolant Inlet Temp [C]:  " << (Clr.Fl_I2.Tt/1.8-273.15) << endl;
+cout << "Coolant Outlet Temp [C]:  " << (Clr.Fl_O2.Tt/1.8-273.15) << endl;
+cout << "Coolant Inlet Press [bar]:  " << (Clr.Fl_I2.Pt/14.5038) << endl;
+cout << "Coolant Outlet Press [bar]:  " << (Clr.Fl_O2.Pt/14.5038) << endl;
+cout << "Convergence:  " << Clr.converge << endl;
+// cout << solver.indepStats() << endl;
+// cout << solver.depStats() << endl;
+
+setOption("switchDes","OFFDESIGN");    
+autoSolverSetup();
+FsCO2.Pt = 1015;
+FsCO2.Tt = 543.278;
+// FsCO2.ht = -80.423;
+FsCO2.ht = -70.423;
+run();
+CASE++;	
+cout << " " << endl;
+cout << "OFF-DESIGN CASE" << endl;
+cout << "Convergence:  " << Clr.converge << endl;
+cout << "Cooler Q [kW]: " << (Clr.Q*.001055*1000) << endl;
+cout << "CO2 Inlet Temp [C]:  " << (Clr.Fl_I1.Tt/1.8-273.15) << endl;
+cout << "CO2 Outlet Temp [C]:  " << (Clr.Fl_O1.Tt/1.8-273.15) << endl;
+cout << "CO2 Inlet Pressure [bar]:  " << (Clr.Fl_I1.Pt/14.5038) << endl;
+cout << "CO2 Outlet Pressure [bar]:  " << (Clr.Fl_O1.Pt/14.5038) << endl;
+cout << "CO2 Inlet quality: " << Clr.quality[1] << endl;
+cout << "CO2 Outlet quality: " << Clr.quality[Clr.nNodes-1] << endl;
+cout << "Coolant Inlet Temp [C] " << (Clr.Fl_I2.Tt/1.8-273.15) << endl;
+cout << "Coolant Outlet Temp [C] " << (Clr.Fl_O2.Tt/1.8-273.15) << endl;
+cout << "Coolant Inlet Press [bar]:  " << (Clr.Fl_I2.Pt/14.5038) << endl;
+cout << "Coolant Outlet Press [bar]:  " << (Clr.Fl_O2.Pt/14.5038) << endl;

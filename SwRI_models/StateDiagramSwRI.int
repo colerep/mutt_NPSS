@@ -1,0 +1,88 @@
+//-----------------------------------------------------------------------------
+//  Filename:   StateDiagramSwRI.int
+//  Author:     Aaron McClung
+//  Version:    0.1
+//  Date:       2015.10.27
+//
+//  Description:
+//      Element that utilizes stateDiagramsSwRI to create State Diagrams
+//		(Ph and Ts) at each iteration when included in the solverSequence
+//		or for the each converged case when included in postsolverSequence.
+//
+//  Revisions:
+//      v0.1 2015.10.27
+//      - Initial version compiled and streamlined from past models
+//
+//---------------------------------------------------------------------------
+
+
+#ifndef __StateDiagramSwRI__
+#define __StateDiagramSwRI__
+
+#include <InterpIncludes.ncp>
+#include <queryFunctionsSwRI.fnc>
+#include <stateDiagramsSwRI.fnc>
+
+class StateDiagramSwRI extends Element {
+
+	int checkDome = 0;
+	string comp=stateDiagrams.comp;
+	int nDome = 50;
+	string dataDir = "./";
+	int doRun = 1;
+
+	int verify() {
+
+		// Configure P-h and T-s Diagrams
+
+		// DEFINE list of elements to include in the diagram.
+		// Internal logic has been updated to look for Elements with at
+		// least 1 input AND 1 output in the provided list.
+		string phElist[] = .list("Element");
+		string alist[] = .list("Assembly");
+		// SET the list of elements.
+		stateDiagrams.setElist(phElist);
+		stateDiagrams.alist = alist;
+		stateDiagrams.removeAsm();
+
+		// Calculate Vapor Dome
+		if ( ! sys.fileExists(stateDiagrams.dataDir+stateDiagrams.comp+".dome") && checkDome ) {
+			stateDiagrams.vaporDome(comp,nDome);
+		}
+
+		// Calculate iso-contours for the defined region of interest (work in progress)
+		// stateDiagrams.squarePh("METHANE",10.0,20000.0,51,-350.0,100.0,51);
+
+		// Go evaluate gnuplot scripts at runtime
+		stateDiagrams.doRun = FALSE;
+
+		return 1;
+
+	}
+
+	void calculate() {
+		// Update state diagrams
+		if ( doRun ) {
+			stateDiagrams.update();
+		}
+	}
+
+	void solverSequence() {
+		autoAddToSolvSeq = TRUE;
+		solverSequence.append(parent.getName());
+		if (postsolverSequence.contains(parent.getName())) {
+			postsolverSequence.remove(parent.getName());
+		}
+	}
+
+	void postsolverSequence() {
+		autoAddToSolvSeq = FALSE;
+		if (solverSequence.contains(parent.getName())) {
+			solverSequence.remove(parent.getName());
+		}
+		postsolverSequence.append(parent.getName());
+	}
+
+}
+
+#endif

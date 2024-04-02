@@ -1,0 +1,249 @@
+#ifndef __ISOTHERMALCOMPRESSORSWRI__
+#define __ISOTHERMALCOMPRESSORSWRI__
+
+#include <InterpIncludes.ncp>
+
+class IsoThermalCompressorSwRI extends Assembly {
+	int Nstages { value = 1; IOstatus = INPUT; }
+	real PRdes { value = 1.0; trigger = 1; IOstatus = INPUT; }
+	real PR { value = 1.0; IOstatus = OUTPUT; }
+	real eff { value = 1.0; IOstatus = OUTPUT; }
+
+	// Compressor Stage properties
+	real stagePRdes {
+		value = PRdes**(1./Nstages);
+		 IOstatus = INPUT;
+		 trigger = 1;
+	 } // stage pressure ratio
+	real stageEffDes {
+		value = 0.80;
+		IOstatus = INPUT;
+	  trigger=1;
+	} // design point efficiency
+	real stageQhx {
+	 	value = 0.0;
+		IOstatus = INPUT;
+	  trigger=1;
+	} // heat transfer ?
+	real stageMN {
+		value = 0.3;
+		IOstatus = INPUT;
+	 	trigger=1;
+	} // stage inlet Mach Number
+
+	// real QhxTmp = 560.0; // output temperature of intercooler (degR)
+
+	// Cooler Stage Properties
+	// real coolDt { value = 0.0; units = RANKINE; } // change in temp
+	real coolerTout { value = 560.0; units = RANKINE; trigger = 1;} // Fixed outlet Temperature
+	real coolerDt { value = 0.0; units = RANKINE; trigger = 1;}
+	real coolerQ { value = 0.0; units = "Btu/sec"; trigger = 1;}
+	string coolerSwitchHeat { value = "Q"; trigger = 1;} // Mode
+
+
+	//int Nstages = 8;
+	string stageStr;
+	string stageNames[];
+	string coolerStr;
+	string coolerNames[];
+
+	Solver solver;
+
+	void variableChanged(string name, any oldVal) {
+		int j;
+		if (name == "PRdes") {
+			stagePRdes = PRdes**(1./Nstages);
+		}
+		if (name == "stageQhx") {
+			// Update
+			for (j=0; j<stageNames.entries(); j++) {
+				stageNames[j]->Qhx = stageQhx;
+			}
+		}
+		if (name == "stagePRdes") {
+			// Update
+			for (j=0; j<stageNames.entries(); j++) {
+				stageNames[j]->PRdes = stagePRdes;
+			}
+		}
+		if (name == "stageEffDes") {
+			// Update
+			for (j=0; j<stageNames.entries(); j++) {
+				stageNames[j]->effDes = stageEffDes;
+			}
+		}
+		if (name == "stageMN") {
+			// Update
+			for (j=0; j<stageNames.entries(); j++) {
+				stageNames[j]->Fl_I.MN = stageMN;
+			}
+		}
+
+		if (name == "coolerTout") {
+			// Update
+			for (j=0; j<coolerNames.entries(); j++) {
+				coolerNames[j]->Tout = coolerTout;
+			}
+		}
+		if (name == "coolerDt") {
+			// Update
+			for (j=0; j<coolerNames.entries(); j++) {
+				coolerNames[j]->dT = coolerDt;
+			}
+		}
+		if (name == "coolerQ") {
+			// Update
+			for (j=0; j<coolerNames.entries(); j++) {
+				coolerNames[j]->Q = coolerQ;
+			}
+		}
+		if (name == "coolerSwitchHeat") {
+			// Update
+			for (j=0; j<coolerNames.entries(); j++) {
+				coolerNames[j]->switchHeat = coolerSwitchHeat;
+			}
+		}
+
+	}
+
+	void postexecute() {
+		string FS1, FS2;
+		FS1 = stageNames[0]->Fl_I.getPathName();
+		FS2 = coolerNames[stageNames.entries()-1]->Fl_O.getPathName();
+
+		// Pressure Ratio
+		PR = FS2->Pt / FS1->Pt;
+
+		real s1, p1, p2, h1, h2, h2s;
+		s1 = FS1->s;
+
+		p1 = FS1->Pt;
+		p2 = FS2->Pt;
+		h1 = FS1->ht;
+		h2 = FS2->ht;
+
+		FlowStation FsTemp;
+		FsTemp.setTotalSP(s1,p2);
+		h2s = FsTemp.ht;
+
+		eff = (h2s - h1)/(h2-h1);
+	}
+
+	void _init() {
+
+		// Create N  Stages
+		int j;
+
+		// Instantiate N StageCalc Elements
+		for (j=0; j<Nstages; j++) {
+			// Stage Name
+	    stageStr = strFmt("stage%02i",j);
+
+	    // Create Compressor Element
+	    create("Element","Compressor",stageStr);
+
+			// Set Compressor properties
+			stageStr->PRdes 	= stagePRdes;
+			stageStr->effDes 	= stageEffDes;
+			stageStr->Qhx 		= stageQhx;
+
+			stageStr->Fl_I.MN = stageMN;
+
+			// Save name to list of elements
+	    stageNames.append(stageStr->getPathName());
+
+			// cooler Name
+			coolerStr = strFmt("cooler%02i",j);
+
+			// Create heaterSwRI Element
+			create("Element","HeaterSwRI",coolerStr);
+
+			// Set Compressor properties
+			coolerStr->Tout 	= coolerTout;
+			coolerStr->dT 	= coolerDt;
+			coolerStr->Q 	= coolerQ;
+			coolerStr->switchHeat 		= coolerSwitchHeat;
+			// Shaft output port
+			create("ShaftOutputPort","ShaftOutputPort",coolerStr+".Sh_O");
+
+			// Save name to list of elements
+			coolerNames.append(coolerStr->getPathName());
+		}
+
+
+		// promote first FluidInputPort
+	  j = 0;
+	  promotePort(stageNames[j]->getName()+".Fl_I", "Fl_I");
+	  // promote last FluidOutputPort
+	  j = Nstages-1;
+	  promotePort(coolerNames[j]->getName()+".Fl_O", "Fl_O");
+
+		// link Internal Ports
+	  for (j=0; j<Nstages; j++) {
+	    stageStr = strFmt("Fstage%03i",j);
+	    linkPorts(stageNames[j]->getName()+".Fl_O", coolerNames[j]->getName()+".Fl_I", stageStr);
+	  }
+
+	  // link Internal Ports
+	  for (j=0; j<Nstages-1; j++) {
+	    stageStr = strFmt("Fcool%03i",j);
+	    linkPorts(coolerNames[j]->getName()+".Fl_O", stageNames[j+1]->getName()+".Fl_I", stageStr);
+	  }
+
+		// // Promote all ShaftOutputPorts
+		// for (j=0; j<Nstages; j++) {
+		// 	stageStr = strFmt("Shft_%03i",j);
+		// 	promotePort(stageNames[j]->getName()+".Sh_O", stageStr);
+		// }
+
+		create("Element","SubShaftSwRI","subSh");
+		promotePort("subSh.Sh_O", "Sh_O");
+
+		// Shaft Links
+		for (j=0; j<stageNames.entries(); j++) {
+		  stageStr = "subSh_" + stageNames[j];
+		  stageStr.replace(".","_");
+		  // cout << "stageStr " << stageStr << endl;
+		  create("ShaftInputPort","ShaftInputPort","subSh."+stageStr);
+		  linkPorts(stageNames[j]->getName()+".Sh_O", "subSh."+stageStr, "Sh_"+stageNames[j]);
+		}
+
+		// Shaft Links
+		for (j=0; j<coolerNames.entries(); j++) {
+			stageStr = "subSh_" + coolerNames[j];
+			stageStr.replace(".","_");
+			// cout << "stageStr " << stageStr << endl;
+			create("ShaftInputPort","ShaftInputPort","subSh."+stageStr);
+			linkPorts(coolerNames[j]->getName()+".Sh_O", "subSh."+stageStr, "Sh_"+coolerNames[j]);
+		}
+
+
+		// Solver Pairs for Isothermal Compression
+		if ( 0 ) {
+			// Independent/Dependent Pairs for IsoThermal Compression
+			for (j=0; j<Cmp.Nstages; j++) {
+			  stageStr = "ind_" + Cmp.stageNames[j] + "_Qhx";
+			  stageStr.replace(".","_");
+			  // cout << "stageStr " << stageStr << endl;
+				create("Independent","Independent",stageStr);
+				stageStr->varName = Cmp.stageNames[j]+".Qhx";
+				stageStr->autoSetup = 1;
+
+				stageStr = "dep_" + Cmp.stageNames[j] + "_Tt";
+			  stageStr.replace(".","_");
+			  // cout << "stageStr " << stageStr << endl;
+				create("Dependent","Dependent",stageStr);
+				stageStr->eq_lhs = Cmp.stageNames[j]+".Fl_O.Tt";
+				stageStr->eq_rhs = "QhxTmp";
+				stageStr->autoSetup = 1;
+			}
+		} else {
+			//Cmp.stageQhx = 0.;
+		}
+
+		// Add solver pairs
+		autoSolverSetup();
+
+	}
+}
+#endif

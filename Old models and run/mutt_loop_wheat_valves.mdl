@@ -1,0 +1,205 @@
+/* ******
+Name: mutt_loop
+Version: 0.2
+
+Author: Cole Replogle <cole.replogle@swri.org>
+
+
+Last Updated On: 12/20/2022
+Last updated by: Owen Pryor <owen.pryor@swri.org>
+
+
+Description:
+Simple cycle for sub-scale multiphase test loop. This model uses
+the REFPROP thermo package for CO2 and manually implements "tear" streams using
+FluidStartStop_2phase elements to handle the closed cycle
+
+****** */
+
+
+// Specify REFPROP thermo package
+if ( VERSION.index("2.6.") > -1 ) {
+	setThermoPackage("REFPROP");
+} else {
+	setThermoPackage("REFPROP","C:\Program Files (x86)\REFPROP");
+}
+// setThermoPackage("FPT");
+
+Option switchDes {
+	description = "Determines if the model is in design or off-design mode";
+	IOstatus = "input";
+	rewritableValues = FALSE;
+	trigger = FALSE;
+	allowedValues = {"DESIGN","OFFDESIGN"};
+}
+
+
+
+// ----------------------------------------------------------------------------
+//     Instantiate the various elements
+// ----------------------------------------------------------------------------
+
+
+// Instantiate a Tear Stream element named TsPump
+Element TearStreamSwRI TsPump {
+		// Set temperature, pressure, and mass flow rate
+	//Tt = 554.67;
+	ht = 100;
+	Pt = 15;
+	//W = 0.5;
+  
+  
+	// Set fluid composition at the fluid output port
+	Fl_O.comp = "co2"; // pure co2
+	Fl_O.setTotal_hP(ht, Pt );
+  
+	//switchSolveSet = "SOLVE_W_P_T";
+	//switchSolveSet = "SOLVE_W_P_h";
+	switchSolveSet = "SOLVE_P_h";
+	//switchSolveSet = "SOLVE_h";
+}  // End TearStreamSwRI TsCmp
+
+
+
+// Instantiate a pump
+Element Compressor Sunshot {
+	// Subelement CompressorRlineMap S_map {
+		// #include <Sunshot_map.map>
+	// }
+	effDes = 0.8; // Compressor efficiency at cycle design point
+	PRdes = 2; // Total-to-total pressure ratio at cycle design point
+	setOption("switchDes", "DESIGN");
+	//W = 1.0; // compressor weight flow
+	//ShaftInputPort Sh_Sunshot;
+}
+
+
+// Instantiate a first valve
+Element ValveSwRI Valve1 {
+	Cv = 0.01;
+	Xt = 0.2;
+	dP = 1.0;
+}
+
+// Element DuctSwRI Valve1 {
+	// switchDP = "INPUT_dP";
+	// dP_in = 10;
+	
+	// switchQ = "OFF";
+// }
+
+//Instantiate a second valve
+Element ValveSwRI Valve2 {
+	Cv = 0.01;
+	Xt = 0.2;
+	dP = 1.0;
+}
+
+// Instantiate HeaterSwri Cooler
+Element HeaterSwRI Heater {
+	switchHeat = "ENTHALPY";
+	hout = -100 "Btu/lbm";
+	Tamb = 70 "F";
+	dPqP = 0.0;
+
+	} // End HeaterSwRI Cooler
+
+// Instantiate HeaterSwri Cooler
+Element HeaterSwRI Cooler {
+	switchHeat = "TEMP";
+	Tout = 517 "R";
+	Tamb = 70 "F";
+	dPqP = 0.0;
+	
+	} // End HeaterSwRI Cooler
+	
+Element Pipe_Seg Looppipe { 
+  ID = 7.981/12.0;
+  dL = 3.6;
+  elbows = 0;
+  tees = 0;
+  e = 0.00015;
+  // real Vol  = ID*ID*3.1415*0.25*dL;
+  // real fluidVolume { units = "ft3"; value =  Vol; }
+}
+
+// Instantiate Generator Gen
+Element Generator Gen {
+	switchTemp = "NORMAL";
+	elecLoad_in = 10 "kW";
+	Table TB_genEff (real N) {
+		N = {1000.0,5000.0,10000.0,20000.0}
+		genEff = {0.80,0.90,0.95,0.99}
+		N.extrap = "linear";
+		printExtrap = TRUE;
+		extrapIsError = FALSE;
+	}
+}
+
+
+// Instantiate Shaft Sh
+Element Shaft Sh {
+	ShaftInputPort Sh_Sunshot, Sh_Gen;
+	switchDes = "DESIGN";
+	// integrate_Nmech.autoSetup = TRUE;
+	Nmech = 3000;
+}
+
+
+// Instantiate Performance Calculations Perf
+Element Perf {
+
+	
+	// Performance Calculation
+	string _QinPtr[];
+	string _PwrPrt[];
+
+	real pwrNet { units="hp"; } // hp
+
+	
+	void calculate() {
+		// (7.456 999E+02 Hp to Watt / 1.054 350E+03 Btu to J)
+
+		pwrNet = 0; // Hp
+		string rotating[];
+		rotating = .list("Shaft");
+		int i;
+		for (i=0; i<rotating.entries(); i++) {
+			pwrNet += rotating[i]->pwrNet; // Hp
+		}
+		pwrNet = pwrNet-Sh_Gen.pwr;
+	
+		
+
+	} // calculate()
+} // Perf()
+
+
+// ----------------------------------------------------------------------------
+//     Link Ports of the different elements
+// ----------------------------------------------------------------------------
+
+// Link Ports for Tear Stream to Pump Inlet
+linkPorts("TsPump.Fl_O", "Sunshot.Fl_I", "F010out");
+
+// Link Ports Pump Outlet to Valve 1 Inlet
+linkPorts("Sunshot.Fl_O", "Valve1.Fl_I", "F020");
+
+// Link Ports for Valve 1 Outlet to Valve 2 Inlet
+linkPorts("Valve1.Fl_O", "Valve2.Fl_I", "F040");
+
+// Link Ports for Valve 2 Outlet to Heater Inlet
+linkPorts("Valve2.Fl_O", "Heater.Fl_I", "F050");
+
+// Link Ports for Heater outlet to Cooler inlet
+linkPorts("Heater.Fl_O", "Cooler.Fl_I", "F060");
+
+// Link Ports for Cooler outlet to pipe/test section dP inlet
+linkPorts("Cooler.Fl_O","Looppipe.Fl_I", "F070");
+
+// Link Ports for pipe model outlet to TS inlet
+linkPorts("Looppipe.Fl_O","TsPump.Fl_I", "F010in");
+
+// Link Ports for Shaft
+linkPorts( "Sunshot.Sh_O", "Sh.Sh_Sunshot", "Sh_Sunshot" ); // shaft ports
+linkPorts( "Gen.Sh_O", "Sh.Sh_Gen", "Sh_Gen" ); // shaft ports

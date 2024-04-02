@@ -1,0 +1,86 @@
+CaseRowViewer printStepRow {
+    
+    void appendEntries() {
+        int i, j;
+        for (i=0; i<oList.entries(); i++) {
+            for (j=0; j<sList.entries(); j++) {
+                dynList.append(oList[i] + "." + sList[j]);
+            }
+        }
+    }
+    
+    
+    outStreamHandle = "os_printStepRow";
+    variableList = { 
+    "FsHtr.W",
+    "F010b.Tt","F010b.Pt","F010b.ht",
+    "F010a.Tt","F010a.Pt","F010a.ht",
+    "F020.Tt","F020.Pt","F020.ht",
+    "F030.Tt","F030.Pt","F030.ht",
+    "F040.Tt","F040.Pt","F040.ht",
+    "F050.Tt","F050.Pt","F050.ht",
+    "Htr.switchHeat","Htr.Tout","Htr.dT","Htr.Q","Htr.dTsat",
+    //"Chill.switchHeat","Chill.Tout","Chill.dT","Chill.Q","Chill.dTsat",
+    "Trb.pwr"//, 
+    //"Cmp.pwr", 
+    //"Perf.wnet", "Perf.qnet", "Perf.eff"
+    };
+    
+    string dynList[];
+    
+    string oList[];
+    string sList[];
+    
+    // FluidLinks
+    oList = .list("Link",1,"exists(\"Tt\")==1");
+    sList = {"Tt","Pt","ht","W"};
+    appendEntries();
+    
+    
+    oList = .list("Port",1,"exists(\"Tt\")==1");
+    sList = {"Tt","Pt","ht","W"};
+    appendEntries();
+    
+    // Compressors and Turbines
+    oList = .list("Element",1,"exists(\"PR\")==1");
+    sList = { "pwr", "trq", "PR", "PRdes" };
+    appendEntries();
+    
+    // Shafts
+    oList = .list("Shaft",1,"exists(\"pwrNet\")==1");
+    sList = { "pwrIn", "pwrOut", "pwrNet", "trqIn", "trqOut", "trqNet" };
+    appendEntries();
+    
+    // Heaters
+    oList = .list("HeaterSwRI",1);
+    sList = { "switchHeat", "dT", "dTsat", "Q", "hout", "Tout", "x", "pwr" };
+    appendEntries();
+    
+    // HeatExchangers
+    oList = .list("HeatExchanger",1);
+    sList = { "switchQcalc", "switchQ", "Q", "effect", "cap1", "cap2" };
+    appendEntries();
+    
+    // HeatExchangers
+    oList = { "Perf" };
+    sList = { "pwrNet", "Qin", "eff", "effC", "pctC" };
+    appendEntries();
+
+    // solver
+    oList = { "solver" };
+    sList = { "converged", "iterationCounter", "passCounter" };
+    appendEntries();
+
+    // Error Handler
+    oList = { "errHandler" };
+    sList = { "numErrors", "numWarnings", "numMessages" };
+    appendEntries();
+    
+    // scalars
+    dynList.append( "pctAcetone_in");    
+    
+    variableList = dynList;
+    
+    // cout << "dynList " << dynList << endl;
+    // cout << "variableList " << variableList << endl;
+}

@@ -1,0 +1,285 @@
+/******************************************************************************
+*   © Copyright 2003.  The U.S. Government, as Represented by the Administrator
+*     of the National Aeronautics and Space Administration (NASA).
+*   © Copyright 2008, 2009, 2010, 2011, 2012.     The Ohio Aerospace Institute, on behalf of the NPSS(TM)
+*     Consortium.  All rights reserved.  Includes content licensed from the 
+*     U.S. Government, National Aeronautics and Space Administration under 
+*     United States Copyright Registration Numbers  V3503D364 and V3482D344.
+*******************************************************************************/
+
+/******************************************************************************
+*  NPSSTM software and related documentation is export controlled
+*  with an Export Control Classification Number(ECCN) of 9D991, controlled for
+*  Anti-Terrorism reasons, under U.S. Export Administration Regulations 15 CFR
+*  730-774. It may not be transferred to a country checked under anti-terrorism
+*  on the Commerce Country Chart structure or to foreign nationals of those
+*  countries in the U.S. or abroad without first obtaining a license from the
+*  Bureau of Industry and Security, United States Department of Commerce. 
+*  Violations are punishable by fine, imprisonment, or both.
+******************************************************************************/
+
+//
+// DLR: updated to use Load power as basis for SFC instead of thrust (12/27/2012)
+//
+
+#ifndef __ENGPERF__
+#define __ENGPERF__
+
+#include <InterpIncludes.ncp>
+
+
+class EngPerf_SwRI extends Element {
+//------------------------------------------------------------
+//  DOCUMENTATION 
+//------------------------------------------------------------
+
+  title = "";
+
+
+  description = isA() + " calculates overall engine performance ";
+
+  usageNotes = isA() + 
+"
+
+- This element calculates total engine performance parameters: 
+total engine gross thrust (Fg), net thrust (Fn), corrected net 
+thrust (Fnc), ram drag (Fram), installation drag (Fd) (excluding Fram), 
+total fuel flow (Wfuel) used in SFC calculation, specific fuel
+consumption - power or thrust (SFC), and delivered shaft power
+(pwrSD).
+
+- All that needs to be done to get this element to work is to
+include it in a model.  (It should be the last element in the
+solver sequence.)  It will automatically search the engine for
+the appropriate data.
+
+- The element requires that the model use elements of the type
+Inlet, Compressor, Burner, Nozzle.  If the model uses elements 
+of different type for these calculations then this element needs 
+to be modified.
+ 
+
+";
+
+  background = "";
+
+//------------------------------------------------------------
+//  SETUP VARIABLES 
+//------------------------------------------------------------
+
+  real Fg{
+    value = 0.0; IOstatus = OUTPUT; units = LBF;
+    description = "Overall gross thrust";    
+  }
+  real Fn{
+    value = 0.0; IOstatus = OUTPUT; units = LBF;
+    description = "Overall net thrust";    
+  }
+  real Fnc{
+    value = 0.0; IOstatus = OUTPUT; units = LBF;
+    description = "Corrected overall net thrust";    
+  }
+  real Fram{
+    value = 0.0; IOstatus = OUTPUT; units = LBF;
+    description = "Overall ram drag";    
+  }
+  // DLR: modified to update units for power based SFC
+  real SFC{
+    value = 0.0; IOstatus = OUTPUT; units = LBM_PER_HR_HP;
+    description = "Specific fuel consumption";    
+  }
+  // DLR: modified to update units for power based SFC
+  real SFCkW{
+	// units feature is broken since it doesn't recognize kW
+    value = 0.0; IOstatus = OUTPUT; units = LBM_PER_HR_HP;
+    description = "Specific fuel consumption - converted to kW units";    
+  }
+  // DLR: add tPwr variable for total power
+  real tPwr{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Overall torque load power (Hp)";    
+  }
+
+  real Wfuel{
+    value = 0.0; IOstatus = OUTPUT; units = LBM_PER_HR;
+    description = "Overall fuel flow (lbm per hr)";    
+  }
+
+  // pointer values to store the location of the engine variables
+  string _ptrPs{
+     value = ""; IOstatus=UNSET; units = NONE;
+     description = "INTERNAL USE ONLY: reference for ambient pressure";
+  }
+
+  string _ptrFg[]; 
+//   _ptrFg{ 
+//     value = ""; IOstatus=UNSET; units = NONE;
+//     description = "INTERNAL USE ONLY: reference for gross thrust"; 
+//   }
+
+  string _ptrFram[];
+// { 
+// 	 value = ""; IOstatus=UNSET; units = NONE;
+// 	 description = "INTERNAL USE ONLY: reference for overall ram drag"; 
+//   }
+  string _ptrWfuel[];
+// { 
+// 	 value = ""; IOstatus=UNSET; units = NONE;
+// 	 description = "INTERNAL USE ONLY: reference for fuel flow"; 
+//   }
+
+  // DLR: added for loads
+  string _ptrLoad[];
+// { 
+// 	 value = ""; IOstatus=UNSET; units = NONE;
+// 	 description = "INTERNAL USE ONLY: reference for torque loads"; 
+//   }
+  
+  
+//------------------------------------------------------------
+//  Create lists to store the element names
+//------------------------------------------------------------
+
+
+//------------------------------------------------------------
+//  During verify find the necessary elements
+//------------------------------------------------------------
+  int verify(){
+
+    //------------------------------------------------------------
+    // get the the appropritate element lists (start from top)
+    //------------------------------------------------------------
+    string tpname = ".";
+    string flights[] = tpname->list( "Ambient" );
+    string inlets[] = tpname->list( "Inlet" );
+    string nozzles[] = tpname->list( "Nozzle" );
+    string burners[] = tpname->list( "Burner" );
+	// DLR: add loads
+    string loads[] = tpname->list( "Load" );
+    
+
+    //------------------------------------------------------------
+    // test existance of an Ambient component
+    //------------------------------------------------------------
+    if (flights.entries() <= 0){
+      cout << "ERROR: an Ambient component must be defined in model\n";
+      return 0;
+    }
+
+    //------------------------------------------------------------
+    // Fill the single value arrays
+    //------------------------------------------------------------
+
+    string temp5 = flights[0] + ".Ps";
+    _ptrPs = temp5;
+
+
+    //------------------------------------------------------------
+    // clear the arrays and refill them with data
+    //------------------------------------------------------------
+    int i;
+
+    for ( i = _ptrFram.entries(); i > 0; i-- ){
+      	_ptrFram.remove( _ptrFram[i-1] );
+    }
+    for ( i = 0; i < inlets.entries(); i++ ){
+	string temp7 = inlets[i] + ".Fram";
+    	_ptrFram.append( temp7 );
+    }
+
+
+    for ( i = _ptrFg.entries(); i > 0; i-- ){
+       _ptrFg.remove( _ptrFg[i-1] );
+    }
+    for ( i = 0; i < nozzles.entries(); i++ ){
+    string temp8 = nozzles[i] + ".Fg";
+    _ptrFg.append( temp8 );
+    }
+
+    for ( i = _ptrWfuel.entries(); i > 0; i-- ){
+    _ptrWfuel.remove( _ptrWfuel[i-1]);
+    }
+    for ( i = 0; i < burners.entries(); i++ ){
+    string temp9 = burners[i] + ".Wfuel";
+    _ptrWfuel.append( temp9 );
+    }
+
+	// DLR: add code for LOADs
+    for ( i = _ptrLoad.entries(); i > 0; i-- ){
+    _ptrLoad.remove( _ptrLoad[i-1]);
+    }
+    for ( i = 0; i < loads.entries(); i++ ){
+    string temp10 = loads[i] + ".pwr";
+    _ptrLoad.append( temp10 );
+    }
+
+    return 1;
+
+  }
+
+//------------------------------------------------------------
+//  Calculate the performance
+//------------------------------------------------------------
+  void calculate(){
+
+    int value;
+    int i;  //loop counter
+
+    //------------------------------------------------------------
+    //  Zero out the running totals
+    //------------------------------------------------------------
+    Fram=0;
+    Fn=0;
+    Fg=0;
+    SFC=0;
+	SFCkW=0;
+    Wfuel=0;
+
+
+    //---------------------------------------------------------------------
+    // Sum up Drag from inlets
+    //---------------------------------------------------------------------
+    for( i=0; i < _ptrFram.entries(); i+=1 ){
+        Fram = Fram + _ptrFram[i]->value;
+    }
+
+    //---------------------------------------------------------------------
+    // Sum up burner fuel flows
+    //---------------------------------------------------------------------
+    for( i=0; i < _ptrWfuel.entries(); i+=1 ){
+        Wfuel = Wfuel + _ptrWfuel[i]->value;
+    }
+
+    //---------------------------------------------------------------------
+    // Sum up nozzle gross thrusts 
+    //---------------------------------------------------------------------
+    Fg = 0;
+    for( i=0; i < _ptrFg.entries(); i+=1 ){
+        Fg = Fg + _ptrFg[i]->value;
+    }
+
+	// DLR: sum of loads
+    //---------------------------------------------------------------------
+    // Sum up torque loads 
+    //---------------------------------------------------------------------
+    tPwr = 0;
+    for( i=0; i < _ptrLoad.entries(); i+=1 ){
+        tPwr = tPwr + _ptrLoad[i]->value;
+    }
+
+    //---------------------------------------------------------------------
+    // Calculate overall values
+    //---------------------------------------------------------------------
+    Fn = Fg - Fram;
+    Fnc = Fn * C_PSTD / _ptrPs->value;
+    Wfuel = Wfuel * 3600.0;      // LBM/SEC -> LBM/hr
+	// DLR: modify SFC calc to use load as power basis instead of thrust
+    SFC = Wfuel / -tPwr;
+	SFCkW = SFC*1.34; //convert to lb/kW/hr
+  }
+}
+ 
+#endif
+
+
+

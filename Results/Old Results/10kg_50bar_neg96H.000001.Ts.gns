@@ -1,0 +1,6 @@
+Tt=4; s=8;
+set xlabel 'Entropy (Btu/(lbm*R))'
+set ylabel 'Temperature (R)'
+plot \
+	'./results/10kg_50bar_neg96H.000001.elements.dat' u s:Tt:(column(s+1)-column(s)):(column(Tt+1)-column(Tt)) w vector lw 2 lc 'red' title '', \
+	'' u (column(s+1)+column(s))/2.:(column(Tt+1)+column(Tt))/2.:1  with labels offset char 1,char 1 title ''

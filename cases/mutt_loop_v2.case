@@ -1,0 +1,133 @@
+
+// ----------------------------------------------------------------------------
+//     Define and load additional files
+// ----------------------------------------------------------------------------
+
+#define MODEL_TOP ..
+
+#define CASENAME 12kg_50bar_neg15H
+#define CASEDIR ./results
+string caseName = "$CASENAME";
+string caseDir = "$CASEDIR";
+#include "mutt_loop_v2.run"
+
+// ----------------------------------------------------------------------------
+//     Initialize Variables
+// ----------------------------------------------------------------------------
+
+// Pressures
+// real PVALVE1OUT { units = "psia"; value = 85.0; } //intermediate presure between valves
+// real PVALVE2OUT { units = "psia"; value = 85.0; } //intermediate presure between valves
+// real PTEAR  { units = "psia"; value = 15.0;  } // pvalve2out and test section in - !!!INPUT!!!
+//real PVALVE2OUT { units = "psia"; value = 85.0; } //intermediate presure between valves
+// real PTEST  { units = "psia"; value = 15.0;  } // pvalve2out and test section in - !!!INPUT!!!
+real PLOW   { units = "psia"; value = 15.0;  } // cooler exit, pump inlet
+real PHIGH  { units = "psia"; value = 15.0;  } // pump exit pressure
+
+// Enthalpy
+real HLOW { units = "Btu/lbm"; value = -10.0;  } // enthalpy for test section quality shown below - !!!INPUT!!!
+// real HTEST { units = "Btu/lbm"; value = -10.0;  } 
+// Quality
+// real QUALITY {value = 0.2;} // quality matching above input P/h 
+
+// Temperatures
+real TLOW { units = "R";    value =  544.67; } //  1400 F = 1859.67 R
+// real THIGH { units = "R";    value =  544.67; } //  85 F = 544.67 R
+// real TTEAR { units = "R";    value =  544.67; } //  85 F = 544.67 R
+real TAMB  { units = "R";    value =  536.67; } //  25 C
+real DTSAT { units = "R";    value =  536.67; }
+
+
+// Mass Flow and Cooler Properties
+real MFR { units = "kg/sec"; value = 10.0; }
+real DPQP {value = 0.005;}
+// real DUTY {units = "Btu/hr"; value = 3000000;}
+
+// Valve Properties
+// real CV1 {value = 0.1;}
+// real CV2 {value = 0.1;}
+// real XT1 {value = 0.1;}
+// real XT2 {value = 0.1;}
+real DP1 { units = "psia"; value = 600;  }
+// real DP2 { units = "psia"; value = 600;  }
+
+// Shaft Properties
+real NMECH {value = 1000;}
+
+
+// ----------------------------------------------------------------------------
+//     Initial Conditions
+// ----------------------------------------------------------------------------
+
+
+// Initialize Machinery Efficiencies/Effectivenesses
+real COOLER_EFFECT = 0.85;
+real SUNSHOT_EFF = 52.77491248; //Spec sheet design efficiency 
+
+// Initialize Pump Design PR
+
+
+
+// Initialize State Conditions
+// PVALVE1OUT =110 "bar";
+// PVALVE2OUT = 90 "bar";
+// PLOW = 36 "bar"; Does not do anything
+
+//THOT = 98 "F";
+// TCOLD = 68 "F"; //Cooler CO2 out spec - Does not do anything. Not initialized
+//TAMB = 25 "C";
+
+// INPUTS INPUT INPUTS
+// ----------------------------------------------------------------------------
+PLOW = 50 "bar"; //5.0 MPa
+HLOW = -117 "Btu/lbm";
+real SUNSHOT_PR = 2.831520279; //Spec sheet design PR
+MFR = 10 "kg/sec";
+PHIGH = PLOW * SUNSHOT_PR;
+// ----------------------------------------------------------------------------
+
+// Component constants
+NMECH = 3575; //RPM
+// DPQP = 6.28/1226; //from cooler spec sheet
+DPQP = 0;
+TLOW = 517.381 "R";
+// DTSAT = -1 "C";
+// DUTY = -3825457 "Btu/hr";
+
+
+// Valve values
+// CV1 = 1;
+// CV2 = 1;
+// XT1 = 1;
+// XT2 = 0.8;
+DP1 = PHIGH-PLOW;
+// DP2 = PVALVE1OUT-PVALVE2OUT;
+
+// ----------------------------------------------------------------------------
+//       Design calculations
+// ----------------------------------------------------------------------------
+
+setOption( "switchDes", "DESIGN" );
+solver.clear();
+// TsPump.ind_Pt.autoSetup = 0;
+// TsPump.ind_ht.autoSetup = 0;
+// TsPump.dep_Pt.autoSetup = 0;
+// TsPump.dep_ht.autoSetup = 0;
+Sh.integrate_Nmech.autoSetup = 0;
+
+autoSolverSetup();
+
+// Update State Conditions
+
+updateTS(PLOW, HLOW, MFR);
+//updateCooler(DPQP, DTSAT);
+updateCooler(DPQP, TLOW);
+updatePump(SUNSHOT_EFF, SUNSHOT_PR, NMECH);
+//updateValve1(CV1, DP1, XT1);
+updateValve1(DP1);
+// updateValve2(CV2, DP2, XT2, PTEST, HTEST);
+
+
+// Run Calculations
+runCase();
+

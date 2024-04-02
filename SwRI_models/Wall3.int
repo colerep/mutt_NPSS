@@ -1,0 +1,425 @@
+/*******************************************************************************
+© Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+© 2008-2013 NPSS® Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS® software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@wolverine-ventures.com
+//
+
+#ifndef __WALL3__
+#define __WALL3__
+
+#include <InterpIncludes.ncp>
+
+class Wall3 extends Element {
+
+  //------------------------------------------------------------
+  //     ******* DOCUMENTATION *******
+  //------------------------------------------------------------
+
+  title = "";
+
+  description = isA() + " provides a means of transferring heat from 
+one stream to another.";
+
+  usageNotes = isA() + 
+    "  
+
+- The wall element allows the user to transfer heat from one
+stream to another through a material mass.  The heat transfer
+between the material mass and the two streams is calculated 
+based on the temperature of the material mass, fluid flow 
+conditions, and the fluid transport properties.
+
+- In steady-state mode, the temperature needs to be varied until
+the heat flowing from the material mass to one stream is equal
+to the heat from the material mass to the other stream.  In 
+transient mode, the heat flux into the material mass is calculated
+and used to determine a temperature derivative.  The 
+derivative is then integrated to determine the temperature.  
+
+- The overall effectiveness of the heat transfer process is 
+calculated.  Thus, this element can be used as a poor man's 
+heat exchanger.  To do this, one of the wall inputs needs
+to be varied by the solver to get the desired effectiveness.
+
+- This custom version includes the Prandtl term from Dittus-Boelter
+in the Chx calculation. This should give better performance across
+wide temperature ranges.";
+
+  background = "";
+
+  //------------------------------------------------------------
+  //     ******* SETUP VARIABLES ********
+  //------------------------------------------------------------
+
+  real Ahx1 {
+    value = 0;  IOstatus = INPUT;  units = INCH2;
+    description = "Heat transfer wetted area 1";
+  }
+  real Ahx2 {
+    value = 0;  IOstatus = INPUT;  units = INCH2;
+    description = "Heat transfer wetted area 2";
+  }
+  real Chx1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_IN2_R;
+    description = "Stream 1 heat transfer film coefficiency";
+  }
+  real Chx2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_IN2_R;
+    description = "Stream 2 heat transfer film coefficient";
+  }
+  real ChxDes1 {
+    value = 0;  IOstatus = INPUT;  units = BTU_PER_SEC_IN2_R;
+    description = "Stream 1 design heat transfer film coefficient";
+  }
+  real ChxDes2 {
+    value = 0;  IOstatus = INPUT;  units = BTU_PER_SEC_IN2_R;
+    description = "Stream 2 design heat transfer film coefficient";
+  }
+  real CpMat {
+    value = 0;  IOstatus = INPUT;  units = BTU_PER_LBM_R;
+    description = "Specific heat of the material";
+  }
+  real dTmatqdt {
+    value = 0;  IOstatus = OUTPUT;  units = R_PER_SEC;
+    description = "Rate of material temp change";
+  }
+  real effect {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Resulting heat exchanger effectiveness";
+  }
+  real expChx1 {
+    value = 0.8;  IOstatus = INPUT;  units = NONE;
+    description = "Stream 1 exponent used in the film coefficiency correlation";
+  }
+  real expChx2 {
+    value = 0.8;  IOstatus = INPUT;  units = NONE;
+    description = "Stream 2 exponent used in the film coefficiency correlation";
+  }
+  real kcDes1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_IN_R;
+    description = "Stream 1 heat transfer conductivity of the gas at design";
+  }
+  real kcDes2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_IN_R;
+    description = "Stream 2 heat transfer conductivity of the gas at design ";
+  }
+  real massMat {
+    value = 1;  IOstatus = INPUT;  units = LBM;
+    description = "Mass of the structural material";
+  }
+  real muDes1 {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_IN_SEC;
+    description = "Stream 1 design value of flow viscosity";
+  }
+  real muDes2 {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_IN_SEC;
+    description = "Stream 2 design value of flow viscosity";
+  }
+  real Qhx1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Heat from the material to stream 1";
+  }
+  real Qhx2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Heat from the material to stream 2";
+  }
+  real TgasPath {
+    value = 0;  IOstatus = OUTPUT;  units = RANKINE;
+    description = "Average gaspath temperature";
+  }
+  real Tmat {
+    value = 0;  IOstatus = OUTPUT;  units = RANKINE;
+    description = "Material temperature";
+  }
+  real Wdes1 {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_SEC;
+    description = "Stream 1 design value of the weight flow ";
+  }
+  real Wdes2 {
+    value = 0;  IOstatus = OUTPUT;  units = LBM_PER_SEC;
+    description = "Stream 2 design value of the weight flow";
+  }
+  real CptDes1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_LBM_RANKINE;			// units assumed here...
+    description = "Stream 1 design value of the specific heat";
+  }
+  real CptDes2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_LBM_RANKINE;			// units assumed here...
+    description = "Stream 2 design value of the specific heat";
+  }
+  real dPqP1 {
+    value = 0;	IOstatus = INPUT; units = NONE;
+    description = "Stream 1 percent pressure drop";
+  }
+  real dPqP2 {
+    value = 0;	IOstatus = INPUT; units = NONE;
+    description = "Stream 2 percent pressure drop";
+  } 
+  
+  //------------------------------------------------------------
+  //   ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+  // Default value is the first value in the allowedValues list
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN } ;
+    description = "Design Off-design switch";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+  
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+
+  // FLUID PORTS
+
+  FluidInputPort Fl_I1 {
+    description = "First inlet flow";
+  }
+
+  FluidInputPort Fl_I2 {
+    description = "Second inlet flow";
+  }
+
+  FluidOutputPort Fl_O1 {
+    description = "First outlet flow";
+  }
+
+  FluidOutputPort Fl_O2 {
+    description = "Second outlet flow";
+  }
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS
+
+  // SOCKETS
+
+  // TABLES
+
+
+  //------------------------------------------------------------
+  // ******* INTERNAL SOLVER SETUP *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+  //------------------------------------------------------------
+  
+  Independent ind_Tmat {
+    varName = "Tmat";
+    description = "Default independent to vary material temperature";
+    autoSetup = FALSE;
+  }
+  
+  Integrator integ_Tmat {
+    eq_lhs = "-Qhx2";
+    eq_rhs = "Qhx1";
+    stateName = "Tmat";
+    derivativeName = "dTmatqdt";
+    description = "Default integrator to balance out the net heat flow";
+    autoSetup = FALSE;
+  }
+    
+  //------------------------------------------------------------
+  // ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+
+    //clear the solver to start building things up from a clean slate
+    clearSolverTerms();
+    
+    //Change the IO status to reflect the design mode
+    if ( name == "switchDes") {
+      //if in design mode lock out design values
+      if ( switchDes == DESIGN) {
+        kcDes1.IOstatus = OUTPUT;
+        muDes1.IOstatus = OUTPUT;
+        kcDes2.IOstatus = OUTPUT;
+        muDes2.IOstatus = OUTPUT;
+
+        //add the state integrator
+        integ_Tmat.autoSetup = FALSE;    
+        //add the independent
+        ind_Tmat.autoSetup = FALSE;
+
+      }
+      //allow the design values to be input in off-design
+      else if ( switchDes == OFFDESIGN) {
+        kcDes1.IOstatus = INPUT;
+        muDes1.IOstatus = INPUT;
+        kcDes2.IOstatus = INPUT;
+        muDes2.IOstatus = INPUT;
+    
+        //add the state integrator
+        integ_Tmat.autoSetup = TRUE;    
+        //add the independent
+        ind_Tmat.autoSetup = TRUE;
+      }
+    }
+    
+  }
+
+ 
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  void calculate() {
+
+    //------------------------------------------------------------
+    // get the values from the incoming stations
+    //------------------------------------------------------------
+    
+    real W1 = Fl_I1.W;
+    real kc1 = Fl_I1.kc;
+    real mu1 = Fl_I1.mu;
+    real Ttotal1 = Fl_I1.Tt;
+    real Cpt1 = Fl_I1.Cpt;
+    
+    real W2 = Fl_I2.W;
+    real kc2 = Fl_I2.kc;
+    real mu2 = Fl_I2.mu;
+    real Ttotal2 = Fl_I2.Tt;
+    real Cpt2 = Fl_I2.Cpt;
+	
+    real n1;
+    real n2;
+	
+    // Set value of Prandtl number term in Dittus-Boelter to 0.3 for cooling and 0.4 for heating
+    if (Ttotal1 > Ttotal2) {
+      n1 = 0.4;
+      n2 = 0.3;
+    }
+    else {
+      n1 = 0.3;
+      n2 = 0.4;
+    }
+	
+    //------------------------------------------------------------
+    // store away the flow values as a design number
+    //------------------------------------------------------------
+    if (switchDes == DESIGN) {
+      Wdes1 = W1;
+      kcDes1 = kc1;
+      muDes1 = mu1;
+      CptDes1 = Cpt1;
+	   
+      Wdes2 = W2;
+      kcDes2 = kc2;
+      muDes2 = mu2;
+      CptDes2 = Cpt2;
+    }
+    //------------------------------------------------------------
+    // calculate hc's based on the flow values
+    //------------------------------------------------------------
+    Chx1 = ChxDes1 * (kc1 / kcDes1) * (((W1 / Wdes1)/(mu1/muDes1))**expChx1)*((Cpt1/CptDes1)*(mu1/muDes1)/(kc1/kcDes1))^n1;
+    Chx2 = ChxDes2 * (kc2 / kcDes2) * (((W2 / Wdes2)/(mu2/muDes2))**expChx2)*((Cpt2/CptDes2)*(mu2/muDes2)/(kc2/kcDes2))^n2;
+    
+    //------------------------------------------------------------
+    //determine the Q's for each stream
+    //------------------------------------------------------------
+	
+    Qhx1 = Chx1 * Ahx1 * ( Tmat - Ttotal1 );
+    Qhx2 = Chx2 * Ahx2 * ( Tmat - Ttotal2 );
+ 	
+    //------------------------------------------------------------
+    //determine the rate of change of the material temp
+    //------------------------------------------------------------
+    dTmatqdt = - ( Qhx1 + Qhx2 ) / ( massMat * CpMat );
+    
+    //------------------------------------------------------------
+    //apply pressure drop for both sides
+    //------------------------------------------------------------
+    real dP1 = dPqP1 * Fl_I1.Pt;
+    real dP2 = dPqP2 * Fl_I2.Pt;
+    real PtOut1 = Fl_I1.Pt - dP1;
+    real PtOut2 = Fl_I2.Pt - dP2;
+		
+    //------------------------------------------------------------
+    //set the exit flow conditions  	 
+    //stream 1
+    //------------------------------------------------------------
+    Fl_O1.copyFlow("Fl_I1");
+    real hout1 = Fl_I1.ht + Qhx1 / W1;
+    // Fl_O1.setTotal_hP( hout1, Fl_I1.Pt );	
+    Fl_O1.setTotal_hP( hout1, PtOut1 );	
+	
+    //------------------------------------------------------------
+    //set the exit flow conditions 
+    //stream 2
+    //------------------------------------------------------------
+    Fl_O2.copyFlow( "Fl_I2" );
+    real hout2 = Fl_I2.ht + Qhx2 / W2;
+    // Fl_O2.setTotal_hP( hout2, Fl_I2.Pt );
+    Fl_O2.setTotal_hP( hout2, PtOut2 );
+    
+    //------------------------------------------------------------
+    //calculate capacity rate ratio	 
+    //calculate the effectiveness	 
+    //------------------------------------------------------------
+    //determine the capacity rate for each stream
+    //capacity = W * Cp
+    //------------------------------------------------------------
+    real Cc1 = W1 * Fl_I1.Cpt;
+    real Cc2 = W2 * Fl_I2.Cpt;
+    
+    //------------------------------------------------------------
+    //determine the mimimum capacity rate
+    //------------------------------------------------------------
+    real Ccmin = Cc1;
+    if ( Cc2 < Ccmin )  {
+      Ccmin = Cc2;
+    }
+    
+    //------------------------------------------------------------
+    //check to see which side is the cold side
+    //------------------------------------------------------------
+    real Cc = Cc2;
+    //Adding ability to know cold side:
+    real deltaTtc = Fl_O2.Tt-Ttotal2;
+    real deltaTtden = Fl_I1.Tt-Fl_I2.Tt;
+    if ( Ttotal1 < Ttotal2 )  {
+      Cc = Cc1;
+      //Adding ability to know cold side:
+      deltaTtc = Fl_O1.Tt-Ttotal1;
+    }
+    
+    //------------------------------------------------------------
+    //calculate the effectiveness
+    //------------------------------------------------------------
+    // effect = ( ( Fl_O2.Tt - Ttotal2 )/ ( Fl_O1.Tt - Ttotal1 ))* (Cc / Ccmin);
+    effect = ( deltaTtc/ deltaTtden)* (Cc / Ccmin);
+	
+    if ( effect < 0 ) {
+      effect = - effect;
+    }
+	
+  }
+
+}
+
+
+#endif

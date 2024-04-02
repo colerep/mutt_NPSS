@@ -1,0 +1,328 @@
+/* ******
+Name: CoolerSwRI
+Version: 0.1
+Date: 10/10/2014
+Author: Aaron McClung <amcclung@swri.org>
+
+Description: This element can be used to heat or cool a stream based on the value of switchHeat. Allowable modes are:
+* TEMP: Specified outlet temperature 
+* dTEMP: Change in temperature from inlet to outlet
+* DUTY: Heat input (or removal for negative values)
+* SUPERHEAT: Specified as temperature above saturation
+* SUBCOOL: Specified as temperature below saturation (same as a negative superheat value)
+* QUALITY: Specified Quality
+
+This element has been testing using the REFPROP thermodynamic package. 
+
+Usage:
+
+To Do:
+* Add quality specification
+
+****** */
+
+#ifndef __CoolerSwRI__
+#define __CoolerSwRI__
+
+#include <InterpIncludes.ncp>
+
+class CoolerSwRI extends Element {
+
+  //------------------------------------------------------------
+  //     ******* DOCUMENTATION *******
+  //------------------------------------------------------------
+
+  title = "";
+
+  description = isA()+" will add or remove thermal energy based on (1) outlet 
+temperature, (2) specified thermal duty";
+
+  usageNotes = isA() + 
+    "
+No Provisional Errors or Warnings
+
+- CoolerSwRI is used to add or remove thermal energy to a flow.
+
+- Initial implementation is for specified outlet temperature, temperature change, or duty.";
+
+  background = "";
+
+  //------------------------------------------------------------
+  //     ******* SETUP VARIABLES ********
+  //------------------------------------------------------------
+
+  real Tout {
+    value = -999; IOstatus = INPUT; units = "R";
+    description = "Outlet Temperature";
+  }
+
+  real hout {
+    value = -999; IOstatus = INPUT; units = "Btu/lbm";
+    description = "Outlet Enthalpy";
+  }
+    
+  real dT {
+    value = 0; IOstatus = INPUT; units = "R";
+    description = "Change in Temperature";
+  }
+
+  real duty {
+    value = 0; IOstatus = INPUT; units = "Btu/sec";
+    description = "Thermal Duty";
+  }
+
+  real dTsat {
+    value = -999; IOstatus = INPUT; units = "R";
+    description = "Superheated Vapor";
+  }
+
+  real x {
+    value = -999; IOstatus = INPUT; units = "lbm/lbm";
+    description = "Liquid Fraction";
+  }
+
+  real dP {
+    value = 0;  IOstatus = OUTPUT;  units = PSIA;
+    description = "Actual pressure drop";
+  }
+  real dPqP {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Normalized pressure drop (delta P/P)";
+  }
+  /*   
+  real dPqP_in {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "User input value of dPqP";
+  }
+  real dPqP_dmd {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Subelement calculated dPqP";
+  }
+  */
+
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total power supplied to the shaft";
+  }
+  
+  real trq {
+    value = 0;  IOstatus = OUTPUT;  units = FT_LBF;
+    description = "Torque required by the cooling system";
+  }
+  
+  real C_Hp_to_W = 745.6999; // 1 hp = 550.0 ft*lbf/s
+  real C_W_to_Hp = 1.0/C_Hp_to_W;
+  
+  //------------------------------------------------------------
+  //   ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+  // First value in the allowedValue list is the default value
+  //
+  //  Option switchDes {
+  //    allowedValues = { DESIGN, OFFDESIGN } ;
+  //    description = "Design/Off-Design switch Design/Off-design switch (has no effect on internal calculations) ";
+  //	 trigger = 0;
+  //  }
+
+  Option switchHeat {
+    allowedValues = { "TEMP", "dTEMP", "DUTY", "SUPERHEAT", "SUBCOOL", "QUALITY", "ENTHALPY"};
+    description = "Switch determines if we are seting outlet Temperatire, TEMP, change in temperature, dTEMP, thermal duty, DUTY, superheated vapor, SUPERHEAT, or subcooled liquid, SUBCOOL.";
+    trigger = 1;
+  }
+
+  Option coolerMode { 
+    allowedValues = { "CoolingTower", "FinFan", "Refrigeration" };
+    description = "";
+    trigger = 1;
+  }
+  
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+
+  // FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary inlet flow";
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exit flow";
+  }
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS
+
+  // SOCKETS
+
+  // TABLES
+
+
+  //------------------------------------------------------------
+  // ******* INTERNAL SOLVER SETUP *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  // ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+
+  void variableChanged( string name, any oldVal ) {
+
+    //Option switchHeat {
+    //  allowedValues = { "TEMP", "dTEMP", "DUTY", "SUPERHEAT", "SUBCOOL", "QUALITY"};
+
+    if ( name == "switchHeat" ) {
+      if ( switchHeat == "TEMP" ) {
+	Tout.IOstatus = INPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = OUTPUT;
+	x.IOstatus = OUTPUT;
+      } else if ( switchHeat == "dTEMP" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = INPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = OUTPUT;
+	x.IOstatus = OUTPUT;
+      } else if ( switchHeat == "DUTY" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = INPUT;
+	dTsat.IOstatus = OUTPUT;
+	x.IOstatus = OUTPUT;
+      } else if ( switchHeat == "SUPERHEAT" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = INPUT;
+	x.IOstatus = OUTPUT;
+      } else if ( switchHeat == "SUBCOOL" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = INPUT;
+	x.IOstatus = OUTPUT;
+      } else if ( switchHeat == "QUALITY" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = OUTPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = OUTPUT;
+	x.IOstatus = INPUT;
+      } else if ( switchHeat == "ENTHALPY" ) {
+	Tout.IOstatus = OUTPUT;
+	hout.IOstatus = INPUT;
+	dT.IOstatus = OUTPUT;
+	duty.IOstatus = OUTPUT;
+	dTsat.IOstatus = OUTPUT;
+	x.IOstatus = OUTPUT;
+      }
+
+    }
+
+  }
+  
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  
+  // Cooling Tower
+// QREFR    kW
+// REFW     kW
+// TEMPCOLD C
+// COP      non-dim
+// PERCARNO non-dim
+
+  // real pwrCoolingTower( real Q )
+    // Cooling Tower
+    // REFW=abs(QREFR*0.06/3.5168) * 
+
+    // Refrigeration
+    // PERCARNO=0.45
+    // COP = 1/((298./(273.15+TEMPCOLD))-1)
+    // REFW=abs(QREFR/(COP*.45))
+  
+  
+  
+  void calculate() {
+
+    //------------------------------------------------------------
+    // Pass the flow information from the inlet to the outlet
+    //------------------------------------------------------------  
+    Fl_O.copyFlow( "Fl_I" );  
+
+    dP = dPqP * Fl_I.Pt;
+    real PtOut = Fl_I.Pt - dP;
+      
+    if ( switchHeat == "TEMP" ) {
+
+      // Specify Outlet Temperature and Pressure
+      if ( Tout >= 0 ) {
+        Fl_O.setTotalTP( Tout, PtOut );
+      }
+
+    } else if ( switchHeat == "dTEMP" ) {
+
+      // Specify Outlet Temperature based on dT and Pressure
+      Fl_O.setTotalTP( Fl_I.Tt + dT, PtOut );
+
+    } else if ( switchHeat == "DUTY" ) {
+
+      // Calculate rise in enthalpy due to thermal duty
+      Fl_O.setTotal_hP( Fl_I.ht + duty/Fl_I.W, PtOut );
+
+    } else if ( switchHeat == "SUPERHEAT" ) {
+
+      // Calculate saturation temperature at Pt and add dTsat
+      Fl_O.setTotalTP( Fl_I.TtSat + dTsat, PtOut );
+
+    } else if ( switchHeat == "SUBCOOL" ) {
+
+      // Calculate saturation temperature at Pt and add dTsat
+      Fl_O.setTotalTP( Fl_I.TtSat + dTsat, PtOut );
+
+    } else if ( switchHeat == "ENTHALPY" ) {
+
+      // Specify Outlet Temperature and Pressure
+      if ( hout >= -999 ) {
+        Fl_O.setTotalhP( hout, PtOut );
+      }
+
+    }
+    
+    // Note that superheat and subcool work the same way. 
+  
+    // Update Outputs
+    // Calculate change in properties from inlet to outlet
+    Tout = Fl_O.Tt;
+    dT = Fl_O.Tt - Fl_I.Tt;
+    duty = (Fl_O.ht - Fl_I.ht) * Fl_I.W;
+    dTsat = 0.;
+    if ( Fl_O.Pt < Fl_O.Pcrit ) {
+      dTsat = Fl_O.Tt - Fl_O.TtSat;
+    }
+    hout = Fl_O.ht;
+
+    //cout << "DEBUG: " << Tout << " " << dT << " " << duty << " " << dTsat << endl;
+
+  }
+
+}
+
+#endif

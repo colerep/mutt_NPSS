@@ -1,0 +1,233 @@
+/*******************************************************************************
+© Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+© 2008-2013 NPSS® Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS® software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@wolverine-ventures.com
+//
+
+#ifndef __SUBSHAFTSWRI__
+#define __SUBSHAFTSWRI__
+
+#include <InterpIncludes.ncp>
+
+class SubShaftSwRI extends Element {
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+ description = "The "+isA() +" element provides an intermediate sum for mechanical
+connections between rotating elements such as turbines and compressors.";
+
+ usageNotes = isA() + "
+
+- The shaft element can have any number of mechanical ports attached to it.
+These ports are declared at run time when the element is created.
+
+- In steady-state mode the solver will vary the shaft mechanical speed to
+balance the input ports torque with the output ports torque.
+
+- In transient mode the mechanical speed is varied until the mechanical speed
+set by the solver is equal to the mechanical speed determined by integrating
+the acceleration determined from the net torque.
+
+- Note that the shaft has only input mechanical ports, they are connected to
+compressor, turbine, and load component output mechanical ports.
+
+- Each port is looked at and its torque summed in either trqPos or trqNeg
+depending on whether it is greater or less than 0.
+
+- trqNet = trqIn * ( 1 - fracLoss ) + trqOut - HPX / ( Nmech * 2*PI/60/550 );
+
+- The power terms are next calculated from the torque terms:
+pwr = trq * Nmech * 2*PI/60/550;
+
+- If the inertiaSum is non-zero then an acceleration is calculated:
+dNqdt = ( trqNet / inertiaSum ) * 60/(2*PI)";
+
+
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+  string _shaftPtr {
+    value = ""; IOstatus = INPUT; units = NONE;
+    description = "Name of the reference shaft";
+  }
+  real inertia {
+    value = 0;  IOstatus = INPUT;  units = SLUG_FT2;
+    description = "Inertia of the shaft itself";
+  }
+  real inertiaSum {
+    value = 0;  IOstatus = OUTPUT;  units = SLUG_FT2;
+    description = "Total inertia of the shaft and attached components";
+  }
+  // Replace Nmech with functvar?
+  /*
+  real _Nmech {
+    value = 0;  IOstatus = INPUT;  units = RPM;
+    description = "Mechanical speed of the shaft";
+  }
+  */
+  FunctVariable Nmech {
+    setFunction = "setNmech";
+    getFunction = "getNmech";
+  }
+  void setNmech(real N) {
+    _shaftPtr = Sh_O.isLinkedTo();
+    Sh_O.isLinkedTo()->Nmech = N;
+  }
+  real getNmech() {
+    return Sh_O.isLinkedTo()->Nmech;
+  }
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total of all power on the shaft";
+  }
+  real trq {
+    value = 0;  IOstatus = OUTPUT;  units = FT_LBF;
+    description = "Net total of all torques on the shaft and losses
+(see Usage Notes)";
+  }
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN }
+    description = "Design mode switch indicator [ DESIGN / OFFDESIGN ]";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+  // FLUID PORTS
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+  string shaftPortList[];
+  shaftPortList.ptrType = "ShaftInputPort";
+  shaftPortList.internal = TRUE; // maintained internal to class by postcreate()
+
+
+  // MECHANICAL PORTS
+  ShaftOutputPort Sh_O {
+    description = "Mechanical connection to the shaft";
+  }
+
+  // FLOW STATIONS
+
+  // SOCKETS
+
+  // TABLES
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+
+    if ( name == "switchDes" ) {
+
+      if ( switchDes == "DESIGN" ) {
+      }
+      else if ( switchDes == "OFFDESIGN" ) {
+      }
+    }
+  }
+
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  void calculate() {
+
+    //------------------------------------------------------------
+    // Set initial value of inertiaSum to be shaft inertia
+    //------------------------------------------------------------
+    inertiaSum = inertia;
+
+    //------------------------------------------------------------
+    // Iterate through the shaft port list to sum torques
+    // supplied and extracted from the shaft and to sum all
+    // shaft components intertias
+    //------------------------------------------------------------
+    trq  = 0.0;
+
+    int i;
+
+    for( i=0; i<shaftPortList.entries(); ++i ) {
+
+      //------------------------------------------------------------
+      // Sum all shaft component inertias
+      //------------------------------------------------------------
+      inertiaSum = inertiaSum + shaftPortList[i]->getInertia();
+
+      //------------------------------------------------------------
+      // Sum torques supplied to the shaft
+      //------------------------------------------------------------
+      trq  = trq  + shaftPortList[i]->getTrq();
+
+    }
+
+    //------------------------------------------------------------
+    // Calculate powers supplied and extracted from the shaft and
+    // the resulting net power
+    //------------------------------------------------------------
+    real convert = 2. * PI / 60. / C_HPtoFT_LBF_PER_SEC;
+
+    pwr = trq * Nmech * convert;
+
+    Sh_O.trq = trq;
+    Sh_O.inertia = inertiaSum;
+  }
+
+  //------------------------------------------------------------
+  // Function allows for creation of shaft input ports
+  //------------------------------------------------------------
+  void postcreate( string name ) {
+
+    if(name->hasInterface("ShaftInputPort")) {
+      shaftPortList.append( name );
+      shaftPortList[shaftPortList.entries()-1]->setSpeedRef( parent.getName() + ".Nmech" );
+    }
+  }
+
+}
+
+#ifdef __NPSSCONVERTER__
+_STD_C_INCLUDES += "\n#include <ShaftInputPort.H>";
+#endif
+
+#endif

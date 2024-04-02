@@ -1,0 +1,217 @@
+
+--------------------------------------------------------------
+SETUP INFO FOR SOLVER 'solver'
+--------------------------------------------------------------
+
+Case No. = 1
+Parent assembly = 
+Solution mode = STEADY_STATE
+
+Operational limits:
+   max allowed solver iterations: maxIterations = 100
+   max allowed model passes: maxPasses = 0
+   max allowed new Jacobians: maxJacobians = 25
+   max allowed Broyden updates to a single Jacobian: maxBroydens = 50
+
+Matrix generation details:
+   criterion for regenerating a new Jacobian: regenNewJacobian = WHEN_NEEDED
+   carry over or calculate Jacobian between cases: firstNewJacobian = CARRY_OVER
+  upper limit on convergenceRatio for an iteration to be judged successfull: convergenceLimit = 1
+  lower limit on convergenceRatio below which a Broyden update will not be performed: broydenLimit = 0
+   max allowed number of consecutive unsuccessful 
+      iterations before a new Jacobian is needed: maxConvergeFailures =  3
+   upper limit on convergenceRatio allowed 
+      before immediately forcing a new Jacobian: divergenceLimit = 2
+
+Independent default attributes:
+   default perturbation type for matrix generation: defaultPerturbationType = FRACTIONAL
+   default perturbation value for Jacobian generation: defaultPerturbation = 0.01
+   default limit type for independent updates: defaultDxLimitType = FRACTIONAL
+   default limit value for independent updates: defaultDxLimit = 0.1
+   default tolerance type for update convergence tests: defaultToleranceType = FRACTIONAL
+   default tolerance value for update convergence tests: defaultTolerance = 0.0001
+   test independent variable updates for convergence: testXConvergenceStr : FALSE
+List of Active Independents: 
+   1  TsPump.ind_ht
+   2  TsPump.ind_Pt
+
+Dependent default attributes:
+   default tolerance type for error convergence tests: defaultToleranceType = FRACTIONAL
+   default tolerance value for error convergence tests: defaultTolerance = 0.0001
+List of Active Dependents:
+   1  TsPump.dep_ht
+   2  TsPump.dep_Pt
+
+Constraint handling settings:
+   enable constraints: constraintHandlingOptStr :  TRUE
+   max number of error-projections on a single iteration: maxConstraintProjections = 3
+   when MIN and MAX constraints conflict, choose: resolveMinMaxConflict : MAX
+List of Inactive Dependents (including constraints) : NONE
+
+DSV (discontinuity handling) settings:
+   max discontinuous iterations: maxDisconIterations : 10
+   max free toggles: maxFreeToggles : 0
+List of DSVs : NONE
+
+
+--------------------------------------------------------------
+SETUP DETAILS FOR INDEPENDENTS IN SOLVER
+   'solver'
+--------------------------------------------------------------
+   *** Only attributes with values unique to each independent 
+   are listed here.***
+--------------------------------------------------------------
+
+1   TsPump.ind_ht
+   varName = ht
+
+2   TsPump.ind_Pt
+   varName = Pt
+
+
+--------------------------------------------------------------
+SETUP DETAILS FOR DEPENDENTS IN SOLVER
+   'solver'
+--------------------------------------------------------------
+   *** Only attributes with values unique to each dependent 
+   are listed here.***
+--------------------------------------------------------------
+
+1   TsPump.dep_ht
+     eq_lhs Expression: Fl_I.ht
+     eq_rhs Expression: Fl_O.ht
+     Reference Expression (eq_Ref) : Fl_I.ht
+
+2   TsPump.dep_Pt
+     eq_lhs Expression: Fl_I.Pt
+     eq_rhs Expression: Fl_O.Pt
+     Reference Expression (eq_Ref) : Fl_I.Pt
+
+
+
+START CONTINUOUS MODEL CONVERGENCE:
+=========================
+ITERATION #1
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    TsPump.ind_ht  ht             -1.2200e+002   -1.2200e+002   +1.2200e+002   
+2    TsPump.ind_Pt  Pt             +5.8015e+002   +5.8015e+002   +5.8015e+002   
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    TsPump.dep_ht  D    -1.2301e+002   -1.2200e+002   +1.2301e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -8.2352e-003   +1.0000e-004   FALSE     DY1I1
+2    TsPump.dep_Pt  D    +5.8015e+002   +5.8015e+002   +5.8015e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        +0.0000e+000   +1.0000e-004   TRUE      DY2I1
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0              errorMagNorm        = 0.008235       convergenceRatio    = 0              
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+--------------------------------------------
+JACOBIAN BEING GENERATED FOR SOLVER  'solver'
+--------------------------------------------
+
+BASE POINT FOR MATRIX GENERATION
+--------------------------------------------
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    TsPump.ind_ht  ht             -1.2200e+002   -1.2200e+002   +1.2200e+002   
+2    TsPump.ind_Pt  Pt             +5.8015e+002   +5.8015e+002   +5.8015e+002   
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    TsPump.dep_ht  D    -1.2301e+002   -1.2200e+002   +1.2301e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -8.2352e-003   +1.0000e-004   FALSE     DY1I1
+2    TsPump.dep_Pt  D    +5.8015e+002   +5.8015e+002   +5.8015e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        +0.0000e+000   +1.0000e-004   TRUE      DY2I1
+
+No Constrained Targets found in Solver 'solver'
+
+
+
+PERTURBATION RESULTS:
+--------------------------------------------
+
+MATRIX COLUMN 1 : Independent 'TsPump.ind_ht'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 122;   PERTURBED X VALUE = -120.78;   DX = 1.22;   PX1
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    TsPump.dep_ht  -1.2301e+002   -1.2078e+002   +1.2301e+002   -1.8153e-002   -8.2352e-003   -9.9176e-003   -8.1292e-003   PX1PY1
+2    TsPump.dep_Pt  +5.8015e+002   +5.8015e+002   +5.8015e+002   +0.0000e+000   +0.0000e+000   +0.0000e+000   +0.0000e+000   PX1PY2
+
+MATRIX COLUMN 2 : Independent 'TsPump.ind_Pt'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 580.151;   PERTURBED X VALUE = 585.953;   DX = 5.80151;   PX2
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    TsPump.dep_ht  -1.2309e+002   -1.2200e+002   +1.2301e+002   -8.8312e-003   -8.2352e-003   -5.9597e-004   -1.0273e-004   PX2PY1
+2    TsPump.dep_Pt  +5.9658e+002   +5.8595e+002   +5.8015e+002   +1.8315e-002   +0.0000e+000   +1.8315e-002   +3.1570e-003   PX2PY2
+
+RESULTING JACOBIAN MATRIX
+----------------------------
+-8.129220e-003 -1.027274e-004 
++0.000000e+000 +3.156972e-003 
+
+
+determinant = +2.566372e-005
+
+
+INDEPENDENT UPDATES - (unscaled)
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    TsPump.ind_ht  -1.0130e+000   +1.2301e+001   -1.0130e+000   
+2    TsPump.ind_Pt  -6.2072e-014   +5.8015e+001   -6.2072e-014   
+
+
+=========================
+ITERATION #2
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    TsPump.ind_ht  ht             -1.2301e+002   -1.2301e+002   +1.2301e+002   
+2    TsPump.ind_Pt  Pt             +5.8015e+002   +5.8015e+002   +5.8015e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    TsPump.dep_ht  D    -1.2301e+002   -1.2301e+002   +1.2301e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        +0.0000e+000   +1.0000e-004   TRUE      DY1I2
+2    TsPump.dep_Pt  D    +5.8015e+002   +5.8015e+002   +5.8015e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        +0.0000e+000   +1.0000e-004   TRUE      DY2I2
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.008235       errorMagNorm        = 0              convergenceRatio    = 0              
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+CASE 1 : SOLVER CONVERGENCE STATISTICS for 'solver'
+======================================================
+   CONVERGED = TRUE
+   solver iterations = 2
+   total model passes = 4
+   discon iterations = 0
+   Jacobians generated = 1
+   Broyden updates = 0
+

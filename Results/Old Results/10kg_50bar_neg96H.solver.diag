@@ -1,0 +1,2289 @@
+
+--------------------------------------------------------------
+SETUP INFO FOR SOLVER 'solver'
+--------------------------------------------------------------
+
+Case No. = 1
+Parent assembly = 
+Solution mode = STEADY_STATE
+
+Operational limits:
+   max allowed solver iterations: maxIterations = 100
+   max allowed model passes: maxPasses = 0
+   max allowed new Jacobians: maxJacobians = 25
+   max allowed Broyden updates to a single Jacobian: maxBroydens = 50
+
+Matrix generation details:
+   criterion for regenerating a new Jacobian: regenNewJacobian = WHEN_NEEDED
+   carry over or calculate Jacobian between cases: firstNewJacobian = CARRY_OVER
+  upper limit on convergenceRatio for an iteration to be judged successfull: convergenceLimit = 1
+  lower limit on convergenceRatio below which a Broyden update will not be performed: broydenLimit = 0
+   max allowed number of consecutive unsuccessful 
+      iterations before a new Jacobian is needed: maxConvergeFailures =  3
+   upper limit on convergenceRatio allowed 
+      before immediately forcing a new Jacobian: divergenceLimit = 2
+
+Independent default attributes:
+   default perturbation type for matrix generation: defaultPerturbationType = FRACTIONAL
+   default perturbation value for Jacobian generation: defaultPerturbation = 0.01
+   default limit type for independent updates: defaultDxLimitType = FRACTIONAL
+   default limit value for independent updates: defaultDxLimit = 0.1
+   default tolerance type for update convergence tests: defaultToleranceType = FRACTIONAL
+   default tolerance value for update convergence tests: defaultTolerance = 0.0001
+   test independent variable updates for convergence: testXConvergenceStr : FALSE
+List of Active Independents: 
+   1  ind_Valve1Cv
+   2  TsPump.ind_ht
+   3  TsPump.ind_Pt
+   4  Valve1.ind_dP
+   5  Valve2.ind_dP
+
+Dependent default attributes:
+   default tolerance type for error convergence tests: defaultToleranceType = FRACTIONAL
+   default tolerance value for error convergence tests: defaultTolerance = 0.0001
+List of Active Dependents:
+   1  dep_PumpPin
+   2  TsPump.dep_ht
+   3  TsPump.dep_Pt
+   4  Valve1.dep_W
+   5  Valve2.dep_W
+
+Constraint handling settings:
+   enable constraints: constraintHandlingOptStr :  TRUE
+   max number of error-projections on a single iteration: maxConstraintProjections = 3
+   when MIN and MAX constraints conflict, choose: resolveMinMaxConflict : MAX
+List of Inactive Dependents (including constraints) : NONE
+
+DSV (discontinuity handling) settings:
+   max discontinuous iterations: maxDisconIterations : 10
+   max free toggles: maxFreeToggles : 0
+List of DSVs : NONE
+
+
+--------------------------------------------------------------
+SETUP DETAILS FOR INDEPENDENTS IN SOLVER
+   'solver'
+--------------------------------------------------------------
+   *** Only attributes with values unique to each independent 
+   are listed here.***
+--------------------------------------------------------------
+
+1   ind_Valve1Cv
+   varName = Valve1.Cv
+
+2   TsPump.ind_ht
+   varName = ht
+
+3   TsPump.ind_Pt
+   varName = Pt
+
+4   Valve1.ind_dP
+   varName = dP
+
+5   Valve2.ind_dP
+   varName = dP
+
+
+--------------------------------------------------------------
+SETUP DETAILS FOR DEPENDENTS IN SOLVER
+   'solver'
+--------------------------------------------------------------
+   *** Only attributes with values unique to each dependent 
+   are listed here.***
+--------------------------------------------------------------
+
+1   dep_PumpPin
+     eq_lhs Expression: TsPump.Fl_I.Pt
+     eq_rhs Expression: PLOW
+
+2   TsPump.dep_ht
+     eq_lhs Expression: Fl_I.ht
+     eq_rhs Expression: Fl_O.ht
+     Reference Expression (eq_Ref) : Fl_I.ht
+
+3   TsPump.dep_Pt
+     eq_lhs Expression: Fl_I.Pt
+     eq_rhs Expression: Fl_O.Pt
+     Reference Expression (eq_Ref) : Fl_I.Pt
+
+4   Valve1.dep_W
+     eq_lhs Expression: W_solve
+     eq_rhs Expression: Fl_I.W
+     Convergence tolerance value (tolerance) : 1e-005
+
+5   Valve2.dep_W
+     eq_lhs Expression: W_solve
+     eq_rhs Expression: Fl_I.W
+     Convergence tolerance value (tolerance) : 1e-005
+
+
+
+START CONTINUOUS MODEL CONVERGENCE:
+=========================
+ITERATION #1
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.0000e+000   +1.0000e+000   +1.0000e+000   
+2    TsPump.ind_ht  ht             -1.1195e+002   -1.1195e+002   +1.1195e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6410e+002   +6.6410e+002   +6.6410e+002   
+5    Valve2.ind_dP  dP             +6.6410e+002   +6.6410e+002   +6.6410e+002   
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1778e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -1.0219e-002   +1.0000e-004   FALSE     DY1I1
+2    TsPump.dep_ht  D    -3.3771e+001   -1.1195e+002   +3.3771e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.3150e+000   +1.0000e-004   FALSE     DY2I1
+3    TsPump.dep_Pt  D    +7.1778e+002   +7.2519e+002   +7.1778e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -1.0325e-002   +1.0000e-004   FALSE     DY3I1
+4    Valve1.dep_W   D    +3.1340e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -6.8660e-001   +1.0000e-005   FALSE     DY4I1
+5    Valve2.dep_W   D    +1.0044e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +4.4168e-003   +1.0000e-005   FALSE     DY5I1
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0              errorMagNorm        = 2.415          convergenceRatio    = 0              
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+--------------------------------------------
+JACOBIAN BEING GENERATED FOR SOLVER  'solver'
+--------------------------------------------
+
+BASE POINT FOR MATRIX GENERATION
+--------------------------------------------
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.0000e+000   +1.0000e+000   +1.0000e+000   
+2    TsPump.ind_ht  ht             -1.1195e+002   -1.1195e+002   +1.1195e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6410e+002   +6.6410e+002   +6.6410e+002   
+5    Valve2.ind_dP  dP             +6.6410e+002   +6.6410e+002   +6.6410e+002   
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1778e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -1.0219e-002   +1.0000e-004   FALSE     DY1I1
+2    TsPump.dep_ht  D    -3.3771e+001   -1.1195e+002   +3.3771e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.3150e+000   +1.0000e-004   FALSE     DY2I1
+3    TsPump.dep_Pt  D    +7.1778e+002   +7.2519e+002   +7.1778e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -1.0325e-002   +1.0000e-004   FALSE     DY3I1
+4    Valve1.dep_W   D    +3.1340e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -6.8660e-001   +1.0000e-005   FALSE     DY4I1
+5    Valve2.dep_W   D    +1.0044e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +4.4168e-003   +1.0000e-005   FALSE     DY5I1
+
+No Constrained Targets found in Solver 'solver'
+
+
+
+PERTURBATION RESULTS:
+--------------------------------------------
+
+MATRIX COLUMN 1 : Independent 'ind_Valve1Cv'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 1;   PERTURBED X VALUE = 1.01;   DX = 0.01;   PX1
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    dep_PumpPin    +7.1778e+002   +7.2519e+002   +7.2519e+002   -1.0219e-002   -1.0219e-002   +0.0000e+000   +0.0000e+000   PX1PY1
+2    TsPump.dep_ht  -3.3771e+001   -1.1195e+002   +3.3771e+001   +2.3150e+000   +2.3150e+000   +0.0000e+000   +0.0000e+000   PX1PY2
+3    TsPump.dep_Pt  +7.1778e+002   +7.2519e+002   +7.1778e+002   -1.0325e-002   -1.0325e-002   +0.0000e+000   +0.0000e+000   PX1PY3
+4    Valve1.dep_W   +3.1654e+000   +1.0000e+001   +1.0000e+001   -6.8346e-001   -6.8660e-001   +3.1340e-003   +3.1340e-001   PX1PY4
+5    Valve2.dep_W   +1.0044e+001   +1.0000e+001   +1.0000e+001   +4.4168e-003   +4.4168e-003   +0.0000e+000   +0.0000e+000   PX1PY5
+
+MATRIX COLUMN 2 : Independent 'TsPump.ind_ht'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 111.95;   PERTURBED X VALUE = -110.831;   DX = 1.1195;   PX2
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    dep_PumpPin    +7.1778e+002   +7.2519e+002   +7.2519e+002   -1.0219e-002   -1.0219e-002   +0.0000e+000   +0.0000e+000   PX2PY1
+2    TsPump.dep_ht  -3.3771e+001   -1.1083e+002   +3.3771e+001   +2.2818e+000   +2.3150e+000   -3.3150e-002   -2.9611e-002   PX2PY2
+3    TsPump.dep_Pt  +7.1778e+002   +7.2519e+002   +7.1778e+002   -1.0325e-002   -1.0325e-002   +0.0000e+000   +0.0000e+000   PX2PY3
+4    Valve1.dep_W   +3.1250e+000   +1.0000e+001   +1.0000e+001   -6.8750e-001   -6.8660e-001   -9.0722e-004   -8.1038e-004   PX2PY4
+5    Valve2.dep_W   +1.0018e+001   +1.0000e+001   +1.0000e+001   +1.7837e-003   +4.4168e-003   -2.6331e-003   -2.3520e-003   PX2PY5
+
+MATRIX COLUMN 3 : Independent 'TsPump.ind_Pt'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 725.189;   PERTURBED X VALUE = 732.441;   DX = 7.25189;   PX3
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    dep_PumpPin    +7.3810e+002   +7.2519e+002   +7.2519e+002   +1.7807e-002   -1.0219e-002   +2.8027e-002   +3.8647e-003   PX3PY1
+2    TsPump.dep_ht  -1.1208e+002   -1.1195e+002   +3.3771e+001   -3.7166e-003   +2.3150e+000   -2.3187e+000   -3.1974e-001   PX3PY2
+3    TsPump.dep_Pt  +7.3810e+002   +7.3244e+002   +7.1778e+002   +7.8878e-003   -1.0325e-002   +1.8213e-002   +2.5115e-003   PX3PY3
+4    Valve1.dep_W   +3.1374e+000   +1.0000e+001   +1.0000e+001   -6.8626e-001   -6.8660e-001   +3.3451e-004   +4.6128e-005   PX3PY4
+5    Valve2.dep_W   +1.0062e+001   +1.0000e+001   +1.0000e+001   +6.1643e-003   +4.4168e-003   +1.7475e-003   +2.4097e-004   PX3PY5
+
+MATRIX COLUMN 4 : Independent 'Valve1.ind_dP'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 664.099;   PERTURBED X VALUE = 670.74;   DX = 6.64099;   PX4
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    dep_PumpPin    +7.1120e+002   +7.2519e+002   +7.2519e+002   -1.9284e-002   -1.0219e-002   -9.0640e-003   -1.3649e-003   PX4PY1
+2    TsPump.dep_ht  -3.3086e+001   -1.1195e+002   +3.3771e+001   +2.3353e+000   +2.3150e+000   +2.0282e-002   +3.0541e-003   PX4PY2
+3    TsPump.dep_Pt  +7.1120e+002   +7.2519e+002   +7.1778e+002   -1.9483e-002   -1.0325e-002   -9.1576e-003   -1.3790e-003   PX4PY3
+4    Valve1.dep_W   +3.1471e+000   +1.0000e+001   +1.0000e+001   -6.8529e-001   -6.8660e-001   +1.3036e-003   +1.9630e-004   PX4PY4
+5    Valve2.dep_W   +1.0038e+001   +1.0000e+001   +1.0000e+001   +3.8445e-003   +4.4168e-003   -5.7235e-004   -8.6185e-005   PX4PY5
+
+MATRIX COLUMN 5 : Independent 'Valve2.ind_dP'
+   PERTURB SIZE/TYPE = 0.01 / FRACTIONAL;   XREF = 664.099;   PERTURBED X VALUE = 670.74;   DX = 6.64099;   PX5
+
+DEPENDENT RESPONSE:
+ROW  SHORT-NAME     y1             y2             yRef           ERROR          BASE-ERROR     DELTA-ERROR    DERR/DX
+1    dep_PumpPin    +7.1120e+002   +7.2519e+002   +7.2519e+002   -1.9284e-002   -1.0219e-002   -9.0640e-003   -1.3649e-003   PX5PY1
+2    TsPump.dep_ht  -3.3086e+001   -1.1195e+002   +3.3771e+001   +2.3353e+000   +2.3150e+000   +2.0282e-002   +3.0541e-003   PX5PY2
+3    TsPump.dep_Pt  +7.1120e+002   +7.2519e+002   +7.1778e+002   -1.9483e-002   -1.0325e-002   -9.1576e-003   -1.3790e-003   PX5PY3
+4    Valve1.dep_W   +3.1340e+000   +1.0000e+001   +1.0000e+001   -6.8660e-001   -6.8660e-001   +0.0000e+000   +0.0000e+000   PX5PY4
+5    Valve2.dep_W   +1.0083e+001   +1.0000e+001   +1.0000e+001   +8.2953e-003   +4.4168e-003   +3.8784e-003   +5.8401e-004   PX5PY5
+
+RESULTING JACOBIAN MATRIX
+----------------------------
++0.000000e+000 +0.000000e+000 +3.864742e-003 -1.364864e-003 -1.364864e-003 
++0.000000e+000 -2.961129e-002 -3.197374e-001 +3.054070e-003 +3.054070e-003 
++0.000000e+000 +0.000000e+000 +2.511456e-003 -1.378956e-003 -1.378956e-003 
++3.134045e-001 -8.103788e-004 +4.612759e-005 +1.962990e-004 +0.000000e+000 
++0.000000e+000 -2.352039e-003 +2.409673e-004 -8.618494e-005 +5.840110e-004 
+
+
+determinant = +1.182670e-011
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0390468: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.5610e+000   +1.1000e-001   +1.0000e-001   
+2    TsPump.ind_ht  +7.7407e+001   +1.0893e+001   +3.0225e+000   
+3    TsPump.ind_Pt  -1.0285e-013   +7.2519e+001   -4.0159e-015   
+4    Valve1.ind_dP  -2.7159e+002   +6.5349e+001   -1.0605e+001   
+5    Valve2.ind_dP  +2.6410e+002   +6.7441e+001   +1.0312e+001   
+
+
+=========================
+ITERATION #2
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.1000e+000   +1.1000e+000   +1.1000e+000   
+2    TsPump.ind_ht  ht             -1.0893e+002   -1.0893e+002   +1.0893e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.5349e+002   +6.5349e+002   +6.5349e+002   
+5    Valve2.ind_dP  dP             +6.7441e+002   +6.7441e+002   +6.7441e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1807e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -9.8204e-003   +1.0000e-004   FALSE     DY1I2
+2    TsPump.dep_ht  D    -3.3802e+001   -1.0893e+002   +3.3802e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.2225e+000   +1.0000e-004   FALSE     DY2I2
+3    TsPump.dep_Pt  D    +7.1807e+002   +7.2519e+002   +7.1807e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -9.9178e-003   +1.0000e-004   FALSE     DY3I2
+4    Valve1.dep_W   D    +3.3972e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -6.6028e-001   +1.0000e-005   FALSE     DY4I2
+5    Valve2.dep_W   D    +1.0041e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +4.1478e-003   +1.0000e-005   FALSE     DY5I2
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 2.415          errorMagNorm        = 2.319          convergenceRatio    = 0.9602         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  2.570260e-012
+ -2.219188e-005
+  2.596791e-012
+ -4.955781e-004
+ -9.660858e-005
+
+
+
+D = 5.837960e+003
+
+Broyden delta-J:
+----------------
+
+  1.127535e-015  3.407966e-014 -4.528014e-029 -1.195729e-013  1.162764e-013
+ -9.735253e-009 -2.942472e-007  3.909533e-022  1.032405e-006 -1.003942e-006
+  1.139174e-015  3.443144e-014 -4.574754e-029 -1.208072e-013  1.174767e-013
+ -2.174028e-007 -6.570982e-006  8.730575e-021  2.305515e-005 -2.241954e-005
+ -4.238077e-008 -1.280955e-006  1.701949e-021  4.494398e-006 -4.370492e-006
+
+
+
+Updated J:
+----------
+
+ +1.127535e-015 +3.407966e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -9.735253e-009 -2.961158e-002 -3.197374e-001 +3.055102e-003 +3.053066e-003
+ +1.139174e-015 +3.443144e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134043e-001 -8.169498e-004 +4.612759e-005 +2.193541e-004 -2.241954e-005
+ -4.238077e-008 -2.353320e-003 +2.409673e-004 -8.169054e-005 +5.796405e-004
+
+
+
+determinant = +1.182670e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0439243: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.5043e+000   +1.2100e-001   +1.1000e-001   
+2    TsPump.ind_ht  +7.4365e+001   +1.0566e+001   +3.2664e+000   
+3    TsPump.ind_Pt  -3.1216e-013   +7.2519e+001   -1.3712e-014   
+4    Valve1.ind_dP  -2.6466e+002   +6.4187e+001   -1.1625e+001   
+5    Valve2.ind_dP  +2.5746e+002   +6.8572e+001   +1.1309e+001   
+
+
+=========================
+ITERATION #3
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.2100e+000   +1.2100e+000   +1.2100e+000   
+2    TsPump.ind_ht  ht             -1.0566e+002   -1.0566e+002   +1.0566e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.4187e+002   +6.4187e+002   +6.4187e+002   
+5    Valve2.ind_dP  dP             +6.8572e+002   +6.8572e+002   +6.8572e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1838e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -9.3891e-003   +1.0000e-004   FALSE     DY1I3
+2    TsPump.dep_ht  D    -3.3835e+001   -1.0566e+002   +3.3835e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.1228e+000   +1.0000e-004   FALSE     DY2I3
+3    TsPump.dep_Pt  D    +7.1838e+002   +7.2519e+002   +7.1838e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -9.4781e-003   +1.0000e-004   FALSE     DY3I3
+4    Valve1.dep_W   D    +3.6755e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -6.3245e-001   +1.0000e-005   FALSE     DY4I3
+5    Valve2.dep_W   D    +1.0036e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +3.5664e-003   +1.0000e-005   FALSE     DY5I3
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 2.319          errorMagNorm        = 2.215          convergenceRatio    = 0.9553         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  2.589734e-013
+ -1.884476e-006
+  2.616379e-013
+ -1.169203e-003
+ -3.991795e-004
+
+
+
+D = 6.231486e+003
+
+Broyden delta-J:
+----------------
+
+  1.040761e-016  3.090520e-015 -1.297322e-029 -1.099893e-014  1.069991e-014
+ -7.573321e-010 -2.248883e-008  9.440239e-023  8.003610e-008 -7.786019e-008
+  1.051469e-016  3.122318e-015 -1.310670e-029 -1.111210e-014  1.081000e-014
+ -4.698786e-007 -1.395295e-005  5.857095e-020  4.965754e-005 -4.830752e-005
+ -1.604221e-007 -4.763702e-006  1.999681e-020  1.695367e-005 -1.649275e-005
+
+
+
+Updated J:
+----------
+
+ +1.231611e-015 +3.717018e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.049259e-008 -2.961160e-002 -3.197374e-001 +3.055182e-003 +3.052988e-003
+ +1.244321e-015 +3.755375e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134038e-001 -8.309027e-004 +4.612759e-005 +2.690117e-004 -7.072706e-005
+ -2.028028e-007 -2.358084e-003 +2.409673e-004 -6.473688e-005 +5.631478e-004
+
+
+
+determinant = +1.167323e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0484987: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.4949e+000   +1.3310e-001   +1.2100e-001   
+2    TsPump.ind_ht  +7.1096e+001   +1.0221e+001   +3.4481e+000   
+3    TsPump.ind_Pt  -4.3141e-013   +7.2519e+001   -2.0923e-014   
+4    Valve1.ind_dP  -2.6750e+002   +6.2890e+001   -1.2973e+001   
+5    Valve2.ind_dP  +2.6062e+002   +6.9836e+001   +1.2640e+001   
+
+
+=========================
+ITERATION #4
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.3310e+000   +1.3310e+000   +1.3310e+000   
+2    TsPump.ind_ht  ht             -1.0221e+002   -1.0221e+002   +1.0221e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.2890e+002   +6.2890e+002   +6.2890e+002   
+5    Valve2.ind_dP  dP             +6.9836e+002   +6.9836e+002   +6.9836e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1871e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -8.9337e-003   +1.0000e-004   FALSE     DY1I4
+2    TsPump.dep_ht  D    -3.3871e+001   -1.0221e+002   +3.3871e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.0177e+000   +1.0000e-004   FALSE     DY2I4
+3    TsPump.dep_Pt  D    +7.1871e+002   +7.2519e+002   +7.1871e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -9.0143e-003   +1.0000e-004   FALSE     DY3I4
+4    Valve1.dep_W   D    +3.9683e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -6.0317e-001   +1.0000e-005   FALSE     DY4I4
+5    Valve2.dep_W   D    +1.0029e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +2.8799e-003   +1.0000e-005   FALSE     DY5I4
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 2.215          errorMagNorm        = 2.106          convergenceRatio    = 0.9508         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  1.624516e-013
+ -9.717833e-007
+  1.641222e-013
+ -1.396773e-003
+ -5.135083e-004
+
+
+
+D = 7.009945e+003
+
+Broyden delta-J:
+----------------
+
+  5.781826e-017  1.647610e-015 -9.997579e-030 -6.199135e-015  6.039714e-015
+ -3.458679e-010 -9.855977e-009  5.980537e-023  3.708313e-008 -3.612948e-008
+  5.841282e-017  1.664553e-015 -1.010039e-029 -6.262882e-015  6.101823e-015
+ -4.971262e-007 -1.416629e-005  8.596003e-020  5.330068e-005 -5.192997e-005
+ -1.827630e-007 -5.208081e-006  3.160226e-020  1.959541e-005 -1.909149e-005
+
+
+
+Updated J:
+----------
+
+ +1.289430e-015 +3.881779e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.083845e-008 -2.961161e-002 -3.197374e-001 +3.055219e-003 +3.052952e-003
+ +1.302734e-015 +3.921831e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134033e-001 -8.450690e-004 +4.612759e-005 +3.223123e-004 -1.226570e-004
+ -3.855659e-007 -2.363292e-003 +2.409673e-004 -4.514147e-005 +5.440563e-004
+
+
+
+determinant = +1.108322e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0534258: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.4913e+000   +1.4641e-001   +1.3310e-001   
+2    TsPump.ind_ht  +6.7646e+001   +9.8599e+000   +3.6140e+000   
+3    TsPump.ind_Pt  -4.8326e-013   +7.2519e+001   -2.5819e-014   
+4    Valve1.ind_dP  -2.7249e+002   +6.1434e+001   -1.4558e+001   
+5    Valve2.ind_dP  +2.6594e+002   +7.1257e+001   +1.4208e+001   
+
+
+=========================
+ITERATION #5
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.4641e+000   +1.4641e+000   +1.4641e+000   
+2    TsPump.ind_ht  ht             -9.8599e+001   -9.8599e+001   +9.8599e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.1434e+002   +6.1434e+002   +6.1434e+002   
+5    Valve2.ind_dP  dP             +7.1257e+002   +7.1257e+002   +7.1257e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1906e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -8.4564e-003   +1.0000e-004   FALSE     DY1I5
+2    TsPump.dep_ht  D    -3.3908e+001   -9.8599e+001   +3.3908e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.9078e+000   +1.0000e-004   FALSE     DY2I5
+3    TsPump.dep_Pt  D    +7.1906e+002   +7.2519e+002   +7.1906e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -8.5286e-003   +1.0000e-004   FALSE     DY3I5
+4    Valve1.dep_W   D    +4.2738e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -5.7262e-001   +1.0000e-005   FALSE     DY4I5
+5    Valve2.dep_W   D    +1.0021e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +2.0630e-003   +1.0000e-005   FALSE     DY5I5
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 2.106          errorMagNorm        = 1.992          convergenceRatio    = 0.9458         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  1.289611e-013
+ -6.123045e-007
+  1.302847e-013
+ -1.671573e-003
+ -6.630728e-004
+
+
+
+D = 7.990188e+003
+
+Broyden delta-J:
+----------------
+
+  4.020950e-017  1.091799e-015 -7.799801e-030 -4.397929e-015  4.292285e-015
+ -1.909139e-010 -5.183839e-009  3.703329e-023  2.088128e-008 -2.037968e-008
+  4.062219e-017  1.103005e-015 -7.879855e-030 -4.443067e-015  4.336339e-015
+ -5.211892e-007 -1.415173e-005  1.010998e-019  5.700527e-005 -5.563593e-005
+ -2.067432e-007 -5.613649e-006  4.010385e-020  2.261261e-005 -2.206943e-005
+
+
+
+Updated J:
+----------
+
+ +1.329639e-015 +3.990959e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.102937e-008 -2.961162e-002 -3.197374e-001 +3.055240e-003 +3.052931e-003
+ +1.343356e-015 +4.032131e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134028e-001 -8.592207e-004 +4.612759e-005 +3.793176e-004 -1.782930e-004
+ -5.923090e-007 -2.368906e-003 +2.409673e-004 -2.252885e-005 +5.219869e-004
+
+
+
+determinant = +1.040062e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0585975: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.4986e+000   +1.6105e-001   +1.4641e-001   
+2    TsPump.ind_ht  +6.4030e+001   +9.4847e+000   +3.7520e+000   
+3    TsPump.ind_Pt  -5.4770e-013   +7.2519e+001   -3.2094e-014   
+4    Valve1.ind_dP  -2.8071e+002   +5.9789e+001   -1.6449e+001   
+5    Valve2.ind_dP  +2.7452e+002   +7.2865e+001   +1.6086e+001   
+
+
+=========================
+ITERATION #6
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.6105e+000   +1.6105e+000   +1.6105e+000   
+2    TsPump.ind_ht  ht             -9.4847e+001   -9.4847e+001   +9.4847e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.9789e+002   +5.9789e+002   +5.9789e+002   
+5    Valve2.ind_dP  dP             +7.2865e+002   +7.2865e+002   +7.2865e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1942e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -7.9609e-003   +1.0000e-004   FALSE     DY1I6
+2    TsPump.dep_ht  D    -3.3947e+001   -9.4847e+001   +3.3947e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.7940e+000   +1.0000e-004   FALSE     DY2I6
+3    TsPump.dep_Pt  D    +7.1942e+002   +7.2519e+002   +7.1942e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -8.0248e-003   +1.0000e-004   FALSE     DY3I6
+4    Valve1.dep_W   D    +4.5896e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -5.4104e-001   +1.0000e-005   FALSE     DY4I6
+5    Valve2.dep_W   D    +1.0012e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +1.1654e-003   +1.0000e-005   FALSE     DY5I6
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.992          errorMagNorm        = 1.874          convergenceRatio    = 0.9407         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  6.000755e-014
+  3.997415e-008
+  6.062512e-014
+ -1.978794e-003
+ -7.767458e-004
+
+
+
+D = 9.273988e+003
+
+Broyden delta-J:
+----------------
+
+  1.616705e-017  4.143053e-016 -3.543907e-030 -1.816362e-015  1.776272e-015
+  1.076971e-011  2.759903e-010 -2.360781e-024 -1.209973e-009  1.183267e-009
+  1.633343e-017  4.185691e-016 -3.580378e-030 -1.835055e-015  1.794552e-015
+ -5.331206e-007 -1.366203e-005  1.168630e-019  5.989589e-005 -5.857389e-005
+ -2.092685e-007 -5.362823e-006  4.587280e-020  2.351123e-005 -2.299230e-005
+
+
+
+Updated J:
+----------
+
+ +1.345806e-015 +4.032389e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.101860e-008 -2.961162e-002 -3.197374e-001 +3.055239e-003 +3.052932e-003
+ +1.359689e-015 +4.073988e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134023e-001 -8.728828e-004 +4.612759e-005 +4.392135e-004 -2.368669e-004
+ -8.015775e-007 -2.374268e-003 +2.409673e-004 +9.823773e-007 +4.989946e-004
+
+
+
+determinant = +9.612165e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0639776: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.5173e+000   +1.7716e-001   +1.6105e-001   
+2    TsPump.ind_ht  +6.0276e+001   +9.0991e+000   +3.8563e+000   
+3    TsPump.ind_Pt  -6.2584e-013   +7.2519e+001   -4.0040e-014   
+4    Valve1.ind_dP  -2.9087e+002   +5.7928e+001   -1.8609e+001   
+5    Valve2.ind_dP  +2.8504e+002   +7.4689e+001   +1.8236e+001   
+
+
+=========================
+ITERATION #7
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.7716e+000   +1.7716e+000   +1.7716e+000   
+2    TsPump.ind_ht  ht             -9.0991e+001   -9.0991e+001   +9.0991e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.7928e+002   +5.7928e+002   +5.7928e+002   
+5    Valve2.ind_dP  dP             +7.4689e+002   +7.4689e+002   +7.4689e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.1978e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -7.4516e-003   +1.0000e-004   FALSE     DY1I7
+2    TsPump.dep_ht  D    -3.3987e+001   -9.0991e+001   +3.3987e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.6772e+000   +1.0000e-004   FALSE     DY2I7
+3    TsPump.dep_Pt  D    +7.1978e+002   +7.2519e+002   +7.1978e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -7.5075e-003   +1.0000e-004   FALSE     DY3I7
+4    Valve1.dep_W   D    +4.9123e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -5.0877e-001   +1.0000e-005   FALSE     DY4I7
+5    Valve2.dep_W   D    +1.0003e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +2.5464e-004   +1.0000e-005   FALSE     DY5I7
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.874          errorMagNorm        = 1.753          convergenceRatio    = 0.9354         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -9.999813e-015
+  6.705601e-007
+ -1.011517e-014
+ -2.342621e-003
+ -8.361686e-004
+
+
+
+D = 1.084376e+004
+
+Broyden delta-J:
+----------------
+
+ -2.321386e-018 -5.558449e-017  5.771365e-031  2.682338e-016 -2.628550e-016
+  1.556658e-010  3.727344e-009 -3.870119e-023 -1.798702e-008  1.762634e-008
+ -2.348166e-018 -5.622572e-017  5.837944e-031  2.713282e-016 -2.658873e-016
+ -5.438230e-007 -1.302158e-005  1.352037e-019  6.283819e-005 -6.157812e-005
+ -1.941106e-007 -4.647887e-006  4.825924e-020  2.242928e-005 -2.197952e-005
+
+
+
+Updated J:
+----------
+
+ +1.343485e-015 +4.026831e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.086293e-008 -2.961161e-002 -3.197374e-001 +3.055221e-003 +3.052950e-003
+ +1.357341e-015 +4.068366e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134017e-001 -8.859043e-004 +4.612759e-005 +5.020517e-004 -2.984450e-004
+ -9.956881e-007 -2.378916e-003 +2.409673e-004 +2.341166e-005 +4.770150e-004
+
+
+
+determinant = +8.791506e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0695643: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.5467e+000   +1.9487e-001   +1.7716e-001   
+2    TsPump.ind_ht  +5.6417e+001   +8.7066e+000   +3.9246e+000   
+3    TsPump.ind_Pt  -8.9493e-013   +7.2519e+001   -6.2255e-014   
+4    Valve1.ind_dP  -3.0107e+002   +5.5834e+001   -2.0943e+001   
+5    Valve2.ind_dP  +2.9561e+002   +7.6745e+001   +2.0564e+001   
+
+
+=========================
+ITERATION #8
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +1.9487e+000   +1.9487e+000   +1.9487e+000   
+2    TsPump.ind_ht  ht             -8.7066e+001   -8.7066e+001   +8.7066e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.5834e+002   +5.5834e+002   +5.5834e+002   
+5    Valve2.ind_dP  dP             +7.6745e+002   +7.6745e+002   +7.6745e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2016e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -6.9332e-003   +1.0000e-004   FALSE     DY1I8
+2    TsPump.dep_ht  D    -3.4027e+001   -8.7066e+001   +3.4027e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.5587e+000   +1.0000e-004   FALSE     DY2I8
+3    TsPump.dep_Pt  D    +7.2016e+002   +7.2519e+002   +7.2016e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -6.9816e-003   +1.0000e-004   FALSE     DY3I8
+4    Valve1.dep_W   D    +5.2382e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -4.7618e-001   +1.0000e-005   FALSE     DY4I8
+5    Valve2.dep_W   D    +9.9923e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -7.6774e-004   +1.0000e-005   FALSE     DY5I8
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.753          errorMagNorm        = 1.63           convergenceRatio    = 0.9299         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -6.116375e-014
+  1.133619e-006
+ -6.149595e-014
+ -2.802991e-003
+ -1.004663e-003
+
+
+
+D = 1.260599e+004
+
+Broyden delta-J:
+----------------
+
+ -1.235625e-017 -2.737352e-016  4.342175e-030  1.460760e-015 -1.434271e-015
+  2.290128e-010  5.073453e-009 -8.047859e-023 -2.707398e-008  2.658301e-008
+ -1.242336e-017 -2.752219e-016  4.365759e-030  1.468694e-015 -1.442061e-015
+ -5.662578e-007 -1.254464e-005  1.989917e-019  6.694321e-005 -6.572925e-005
+ -2.029612e-007 -4.496317e-006  7.132367e-020  2.399415e-005 -2.355903e-005
+
+
+
+Updated J:
+----------
+
+ +1.331129e-015 +3.999457e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.063392e-008 -2.961161e-002 -3.197374e-001 +3.055194e-003 +3.052977e-003
+ +1.344918e-015 +4.040843e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134012e-001 -8.984490e-004 +4.612759e-005 +5.689949e-004 -3.641742e-004
+ -1.198649e-006 -2.383413e-003 +2.409673e-004 +4.740581e-005 +4.534560e-004
+
+
+
+determinant = +8.007764e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0748376: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.6039e+000   +2.1436e-001   +1.9487e-001   
+2    TsPump.ind_ht  +5.2491e+001   +8.3138e+000   +3.9283e+000   
+3    TsPump.ind_Pt  +2.7097e-012   +7.2519e+001   +2.0279e-013   
+4    Valve1.ind_dP  -3.1568e+002   +5.3471e+001   -2.3625e+001   
+5    Valve2.ind_dP  +3.1060e+002   +7.9070e+001   +2.3244e+001   
+
+
+=========================
+ITERATION #9
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +2.1436e+000   +2.1436e+000   +2.1436e+000   
+2    TsPump.ind_ht  ht             -8.3138e+001   -8.3138e+001   +8.3138e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.3471e+002   +5.3471e+002   +5.3471e+002   
+5    Valve2.ind_dP  dP             +7.9070e+002   +7.9070e+002   +7.9070e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2054e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -6.4144e-003   +1.0000e-004   FALSE     DY1I9
+2    TsPump.dep_ht  D    -3.4068e+001   -8.3138e+001   +3.4068e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.4403e+000   +1.0000e-004   FALSE     DY2I9
+3    TsPump.dep_Pt  D    +7.2054e+002   +7.2519e+002   +7.2054e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -6.4558e-003   +1.0000e-004   FALSE     DY3I9
+4    Valve1.dep_W   D    +5.5621e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -4.4379e-001   +1.0000e-005   FALSE     DY4I9
+5    Valve2.dep_W   D    +9.9798e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.0158e-003   +1.0000e-005   FALSE     DY5I9
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.63           errorMagNorm        = 1.507          convergenceRatio    = 0.9247         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -2.197773e-013
+  2.419335e-006
+ -2.224982e-013
+ -3.239478e-003
+ -1.305501e-003
+
+
+
+D = 1.488420e+004
+
+Broyden delta-J:
+----------------
+
+ -3.844912e-017 -7.750683e-016 -4.001088e-029  4.661252e-015 -4.586245e-015
+  4.232526e-010  8.532044e-009  4.404446e-022 -5.131162e-008  5.048593e-008
+ -3.892514e-017 -7.846638e-016 -4.050623e-029  4.718960e-015 -4.643024e-015
+ -5.667331e-007 -1.142436e-005 -5.897531e-019  6.870601e-005 -6.760041e-005
+ -2.283919e-007 -4.603989e-006 -2.376690e-019  2.768834e-005 -2.724279e-005
+
+
+
+Updated J:
+----------
+
+ +1.292680e-015 +3.921950e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -1.021067e-008 -2.961160e-002 -3.197374e-001 +3.055142e-003 +3.053027e-003
+ +1.305993e-015 +3.962377e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134006e-001 -9.098733e-004 +4.612759e-005 +6.377009e-004 -4.317746e-004
+ -1.427041e-006 -2.388017e-003 +2.409673e-004 +7.509415e-005 +4.262132e-004
+
+
+
+determinant = +7.168506e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0789054: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.7167e+000   +2.3579e-001   +2.1436e-001   
+2    TsPump.ind_ht  +4.8560e+001   +7.9306e+000   +3.8316e+000   
+3    TsPump.ind_Pt  -2.1876e-012   +7.2519e+001   -1.7261e-013   
+4    Valve1.ind_dP  -3.4172e+002   +5.0775e+001   -2.6964e+001   
+5    Valve2.ind_dP  +3.3702e+002   +8.1729e+001   +2.6593e+001   
+
+
+=========================
+ITERATION #10
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +2.3579e+000   +2.3579e+000   +2.3579e+000   
+2    TsPump.ind_ht  ht             -7.9306e+001   -7.9306e+001   +7.9306e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.0775e+002   +5.0775e+002   +5.0775e+002   
+5    Valve2.ind_dP  dP             +8.1729e+002   +8.1729e+002   +8.1729e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2090e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -5.9082e-003   +1.0000e-004   FALSE     DY1I10
+2    TsPump.dep_ht  D    -3.4108e+001   -7.9306e+001   +3.4108e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.3251e+000   +1.0000e-004   FALSE     DY2I10
+3    TsPump.dep_Pt  D    +7.2090e+002   +7.2519e+002   +7.2090e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -5.9433e-003   +1.0000e-004   FALSE     DY3I10
+4    Valve1.dep_W   D    +5.8770e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -4.1230e-001   +1.0000e-005   FALSE     DY4I10
+5    Valve2.dep_W   D    +9.9682e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -3.1844e-003   +1.0000e-005   FALSE     DY5I10
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.507          errorMagNorm        = 1.388          convergenceRatio    = 0.9208         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -5.367538e-013
+  4.907076e-006
+ -5.418452e-013
+ -3.533125e-003
+ -1.327650e-003
+
+
+
+D = 1.836302e+004
+
+Broyden delta-J:
+----------------
+
+ -7.940827e-017 -1.419415e-015  6.394261e-029  9.988552e-015 -9.851181e-015
+  7.259611e-010  1.297649e-008 -5.845720e-022 -9.131670e-008  9.006083e-008
+ -8.016150e-017 -1.432879e-015  6.454914e-029  1.008330e-014 -9.944625e-015
+ -5.226964e-007 -9.343149e-006  4.208954e-019  6.574858e-005 -6.484435e-005
+ -1.964148e-007 -3.510895e-006  1.581608e-019  2.470649e-005 -2.436670e-005
+
+
+
+Updated J:
+----------
+
+ +1.213271e-015 +3.780009e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -9.484705e-009 -2.961159e-002 -3.197374e-001 +3.055051e-003 +3.053117e-003
+ +1.225831e-015 +3.819089e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.134001e-001 -9.192165e-004 +4.612759e-005 +7.034495e-004 -4.966190e-004
+ -1.623456e-006 -2.391527e-003 +2.409673e-004 +9.980063e-005 +4.018465e-004
+
+
+
+determinant = +6.198982e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0824908: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.8584e+000   +2.5937e-001   +2.3579e-001   
+2    TsPump.ind_ht  +4.4727e+001   +7.5617e+000   +3.6895e+000   
+3    TsPump.ind_Pt  +2.5310e-012   +7.2519e+001   +2.0878e-013   
+4    Valve1.ind_dP  -3.7045e+002   +4.7719e+001   -3.0559e+001   
+5    Valve2.ind_dP  +3.6612e+002   +8.4749e+001   +3.0202e+001   
+
+
+=========================
+ITERATION #11
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +2.5937e+000   +2.5937e+000   +2.5937e+000   
+2    TsPump.ind_ht  ht             -7.5617e+001   -7.5617e+001   +7.5617e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.7719e+002   +4.7719e+002   +4.7719e+002   
+5    Valve2.ind_dP  dP             +8.4749e+002   +8.4749e+002   +8.4749e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2126e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -5.4209e-003   +1.0000e-004   FALSE     DY1I11
+2    TsPump.dep_ht  D    -3.4147e+001   -7.5617e+001   +3.4147e+001   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.2144e+000   +1.0000e-004   FALSE     DY2I11
+3    TsPump.dep_Pt  D    +7.2126e+002   +7.2519e+002   +7.2126e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -5.4504e-003   +1.0000e-004   FALSE     DY3I11
+4    Valve1.dep_W   D    +6.1747e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -3.8253e-001   +1.0000e-005   FALSE     DY4I11
+5    Valve2.dep_W   D    +9.9603e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -3.9742e-003   +1.0000e-005   FALSE     DY5I11
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.388          errorMagNorm        = 1.273          convergenceRatio    = 0.9175         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -6.526177e-013
+  5.701850e-006
+ -6.598081e-013
+ -4.243474e-003
+ -1.052479e-003
+
+
+
+D = 2.254403e+004
+
+Broyden delta-J:
+----------------
+
+ -8.274774e-017 -1.294778e-015 -7.326883e-029  1.072410e-014 -1.059879e-014
+  7.229580e-010  1.131233e-008  6.401417e-022 -9.369529e-008  9.260045e-008
+ -8.365944e-017 -1.309043e-015 -7.407609e-029  1.084226e-014 -1.071556e-014
+ -5.380453e-007 -8.418949e-006 -4.764112e-019  6.973062e-005 -6.891581e-005
+ -1.334476e-007 -2.088093e-006 -1.181609e-019  1.729480e-005 -1.709271e-005
+
+
+
+Updated J:
+----------
+
+ +1.130524e-015 +3.650531e-014 +3.864742e-003 -1.364864e-003 -1.364864e-003
+ -8.761747e-009 -2.961158e-002 -3.197374e-001 +3.054957e-003 +3.053210e-003
+ +1.142172e-015 +3.688185e-014 +2.511456e-003 -1.378956e-003 -1.378956e-003
+ +3.133995e-001 -9.276354e-004 +4.612759e-005 +7.731801e-004 -5.655348e-004
+ -1.756904e-006 -2.393616e-003 +2.409673e-004 +1.170954e-004 +3.847538e-004
+
+
+
+determinant = +5.332718e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.0867358: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.9904e+000   +2.8531e-001   +2.5937e-001   
+2    TsPump.ind_ht  +4.1037e+001   +7.2057e+000   +3.5594e+000   
+3    TsPump.ind_Pt  -1.9152e-012   +7.2519e+001   -1.6611e-013   
+4    Valve1.ind_dP  -3.8756e+002   +4.4357e+001   -3.3615e+001   
+5    Valve2.ind_dP  +3.8359e+002   +8.8076e+001   +3.3271e+001   
+
+
+=========================
+ITERATION #12
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +2.8531e+000   +2.8531e+000   +2.8531e+000   
+2    TsPump.ind_ht  ht             -7.2057e+001   -7.2057e+001   +7.2057e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.4357e+002   +4.4357e+002   +4.4357e+002   
+5    Valve2.ind_dP  dP             +8.8076e+002   +8.8076e+002   +8.8076e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2160e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -4.9499e-003   +1.0000e-004   FALSE     DY1I12
+2    TsPump.dep_ht  D    -1.1191e+002   -7.2057e+001   +1.1191e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -3.5614e-001   +1.0000e-004   FALSE     DY2I12
+3    TsPump.dep_Pt  D    +7.2160e+002   +7.2519e+002   +7.2160e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -4.9745e-003   +1.0000e-004   FALSE     DY3I12
+4    Valve1.dep_W   D    +6.4490e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -3.5510e-001   +1.0000e-005   FALSE     DY4I12
+5    Valve2.dep_W   D    +9.9544e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -4.5555e-003   +1.0000e-005   FALSE     DY5I12
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 1.273          errorMagNorm        = 0.503          convergenceRatio    = 0.395          
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  7.962609e-007
+ -2.301687e+000
+  8.044823e-007
+ -5.746558e-003
+ -9.260573e-004
+
+
+
+D = 2.593717e+004
+
+Broyden delta-J:
+----------------
+
+  9.180389e-011  1.259813e-009 -5.879466e-023 -1.189795e-008  1.177602e-008
+ -2.653701e-004 -3.641638e-003  1.699530e-016  3.439245e-002 -3.404000e-002
+  9.275177e-011  1.272820e-009 -5.940171e-023 -1.202080e-008  1.189761e-008
+ -6.625422e-007 -9.091977e-006  4.243169e-019  8.586668e-005 -8.498672e-005
+ -1.067686e-007 -1.465171e-006  6.837861e-020  1.383741e-005 -1.369560e-005
+
+
+
+Updated J:
+----------
+
+ +9.180502e-011 +1.259849e-009 +3.864742e-003 -1.364876e-003 -1.364852e-003
+ -2.653788e-004 -3.325321e-002 -3.197374e-001 +3.744741e-002 -3.098679e-002
+ +9.275291e-011 +1.272857e-009 +2.511456e-003 -1.378968e-003 -1.378944e-003
+ +3.133989e-001 -9.367274e-004 +4.612759e-005 +8.590468e-004 -6.505215e-004
+ -1.863672e-006 -2.395081e-003 +2.409673e-004 +1.309328e-004 +3.710582e-004
+
+
+
+determinant = +4.725601e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.272279: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +1.0479e+000   +3.1384e-001   +2.8531e-001   
+2    TsPump.ind_ht  -3.8424e+000   +7.3103e+000   -1.0462e+000   
+3    TsPump.ind_Pt  -8.6774e-014   +7.2519e+001   -2.3627e-014   
+4    Valve1.ind_dP  +1.3741e+001   +4.4731e+001   +3.7414e+000   
+5    Valve2.ind_dP  -1.7368e+001   +8.7604e+001   -4.7289e+000   
+
+
+=========================
+ITERATION #13
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1384e+000   +3.1384e+000   +3.1384e+000   
+2    TsPump.ind_ht  ht             -7.3103e+001   -7.3103e+001   +7.3103e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.4731e+002   +4.4731e+002   +4.4731e+002   
+5    Valve2.ind_dP  dP             +8.7604e+002   +8.7604e+002   +8.7604e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2258e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -3.6020e-003   +1.0000e-004   FALSE     DY1I13
+2    TsPump.dep_ht  D    -1.1192e+002   -7.3103e+001   +1.1192e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -3.4685e-001   +1.0000e-004   FALSE     DY2I13
+3    TsPump.dep_Pt  D    +7.2258e+002   +7.2519e+002   +7.2258e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -3.6151e-003   +1.0000e-004   FALSE     DY3I13
+4    Valve1.dep_W   D    +7.1604e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.8396e-001   +1.0000e-005   FALSE     DY4I13
+5    Valve2.dep_W   D    +9.9881e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -1.1945e-003   +1.0000e-005   FALSE     DY5I13
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.503          errorMagNorm        = 0.4483         convergenceRatio    = 0.8912         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  9.825586e-008
+ -2.906599e-001
+  9.927035e-008
+ -2.554493e-002
+  2.120613e-003
+
+
+
+D = 1.378594e+002
+
+Broyden delta-J:
+----------------
+
+  7.468395e-010 -2.738565e-009 -6.184635e-023  9.793497e-009 -1.237849e-008
+ -2.209296e-003  8.101207e-003  1.829535e-016 -2.897106e-002  3.661798e-002
+  7.545507e-010 -2.766841e-009 -6.248491e-023  9.894615e-009 -1.250630e-008
+ -1.941662e-004  7.119826e-004  1.607905e-017 -2.546151e-003  3.218208e-003
+  1.611871e-005 -5.910526e-005 -1.334803e-018  2.113688e-004 -2.671596e-004
+
+
+
+Updated J:
+----------
+
+ +8.386446e-010 -1.478716e-009 +3.864742e-003 -1.364866e-003 -1.364864e-003
+ -2.474675e-003 -2.515201e-002 -3.197374e-001 +8.476346e-003 +5.631196e-003
+ +8.473036e-010 -1.493984e-009 +2.511456e-003 -1.378958e-003 -1.378957e-003
+ +3.132047e-001 -2.247448e-004 +4.612759e-005 -1.687104e-003 +2.567686e-003
+ +1.425504e-005 -2.454186e-003 +2.409673e-004 +3.423016e-004 +1.038986e-004
+
+
+
+determinant = +1.024370e-010
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.00715055: Limiting Independent is # 1 - ind_Valve1Cv]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +4.3891e+001   +3.4523e-001   +3.1384e-001   
+2    TsPump.ind_ht  +3.0531e+002   +7.0920e+000   +2.1831e+000   
+3    TsPump.ind_Pt  -1.7079e-011   +7.2519e+001   -1.2212e-013   
+4    Valve1.ind_dP  +3.1464e+003   +4.6981e+001   +2.2499e+001   
+5    Valve2.ind_dP  -3.1491e+003   +8.5352e+001   -2.2518e+001   
+
+
+=========================
+ITERATION #14
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.4523e+000   +3.4523e+000   +3.4523e+000   
+2    TsPump.ind_ht  ht             -7.0920e+001   -7.0920e+001   +7.0920e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.6981e+002   +4.6981e+002   +4.6981e+002   
+5    Valve2.ind_dP  dP             +8.5352e+002   +8.5352e+002   +8.5352e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2260e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -3.5762e-003   +1.0000e-004   FALSE     DY1I14
+2    TsPump.dep_ht  D    -1.1192e+002   -7.0920e+001   +1.1192e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -3.6636e-001   +1.0000e-004   FALSE     DY2I14
+3    TsPump.dep_Pt  D    +7.2260e+002   +7.2519e+002   +7.2260e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -3.5891e-003   +1.0000e-004   FALSE     DY3I14
+4    Valve1.dep_W   D    +7.9659e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.0341e-001   +1.0000e-005   FALSE     DY4I14
+5    Valve2.dep_W   D    +9.7317e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.6831e-002   +1.0000e-005   FALSE     DY5I14
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.4483         errorMagNorm        = 0.4199         convergenceRatio    = 0.9367         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  3.668956e-008
+ -7.286976e-002
+  3.706838e-008
+  7.851917e-002
+ -2.564460e-002
+
+
+
+D = 1.423810e+005
+
+Broyden delta-J:
+----------------
+
+  1.131002e-011  7.867292e-011 -4.400986e-024  8.107921e-010 -8.114731e-010
+ -2.246303e-005 -1.562536e-004  8.740872e-018 -1.610328e-003  1.611681e-003
+  1.142680e-011  7.948522e-011 -4.446426e-024  8.191635e-010 -8.198516e-010
+  2.420453e-005  1.683676e-004 -9.418529e-018  1.735173e-003 -1.736630e-003
+ -7.905274e-006 -5.498936e-005  3.076121e-018 -5.667127e-004  5.671887e-004
+
+
+
+Updated J:
+----------
+
+ +8.499546e-010 -1.400043e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.497138e-003 -2.530826e-002 -3.197374e-001 +6.866018e-003 +7.242877e-003
+ +8.587304e-010 -1.414499e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132289e-001 -5.637722e-005 +4.612759e-005 +4.806874e-005 +8.310563e-004
+ +6.349767e-006 -2.509175e-003 +2.409673e-004 -2.244111e-004 +6.710873e-004
+
+
+
+determinant = +5.350359e-013
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.140586: Limiting Independent is # 2 - TsPump.ind_ht]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +9.2082e-001   +3.5817e-001   +1.2945e-001   
+2    TsPump.ind_ht  -5.0446e+001   +7.8012e+000   -7.0920e+000   
+3    TsPump.ind_Pt  +5.5147e-013   +7.2519e+001   +7.7530e-014   
+4    Valve1.ind_dP  +1.0943e+002   +4.8520e+001   +1.5384e+001   
+5    Valve2.ind_dP  -1.1205e+002   +8.3776e+001   -1.5753e+001   
+
+
+=========================
+ITERATION #15
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.5817e+000   +3.5817e+000   +3.5817e+000   
+2    TsPump.ind_ht  ht             -7.8012e+001   -7.8012e+001   +7.8012e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.8520e+002   +4.8520e+002   +4.8520e+002   
+5    Valve2.ind_dP  dP             +8.3776e+002   +8.3776e+002   +8.3776e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2296e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -3.0735e-003   +1.0000e-004   FALSE     DY1I15
+2    TsPump.dep_ht  D    -1.1193e+002   -7.8012e+001   +1.1193e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -3.0301e-001   +1.0000e-004   FALSE     DY2I15
+3    TsPump.dep_Pt  D    +7.2296e+002   +7.2519e+002   +7.2296e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -3.0830e-003   +1.0000e-004   FALSE     DY3I15
+4    Valve1.dep_W   D    +8.6915e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -1.3085e-001   +1.0000e-005   FALSE     DY4I15
+5    Valve2.dep_W   D    +1.0027e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +2.7169e-003   +1.0000e-005   FALSE     DY5I15
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.4199         errorMagNorm        = 0.3301         convergenceRatio    = 0.7861         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -1.361514e-008
+  3.919912e-002
+ -1.375572e-008
+  4.396743e-002
+  2.577551e-002
+
+
+
+D = 3.806537e+003
+
+Broyden delta-J:
+----------------
+
+ -3.293555e-012  1.804346e-010 -1.972500e-024 -3.914097e-010  4.007814e-010
+  9.482416e-006 -5.194862e-004  5.678989e-018  1.126901e-003 -1.153883e-003
+ -3.327561e-012  1.822976e-010 -1.992866e-024 -3.954510e-010  4.049195e-010
+  1.063589e-005 -5.826782e-004  6.369801e-018  1.263981e-003 -1.294245e-003
+  6.235193e-006 -3.415898e-004  3.734238e-018  7.409971e-004 -7.587392e-004
+
+
+
+Updated J:
+----------
+
+ +8.466610e-010 -1.219609e-009 +3.864742e-003 -1.364866e-003 -1.364865e-003
+ -2.487656e-003 -2.582775e-002 -3.197374e-001 +7.992918e-003 +6.088994e-003
+ +8.554028e-010 -1.232201e-009 +2.511456e-003 -1.378958e-003 -1.378957e-003
+ +3.132395e-001 -6.390555e-004 +4.612759e-005 +1.312049e-003 -4.631884e-004
+ +1.258496e-005 -2.850765e-003 +2.409673e-004 +5.165861e-004 -8.765192e-005
+
+
+
+determinant = +1.292606e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.127323: Limiting Independent is # 2 - TsPump.ind_ht]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +1.9552e+000   +3.8307e-001   +2.4895e-001   
+2    TsPump.ind_ht  -6.1271e+001   +8.5814e+000   -7.8012e+000   
+3    TsPump.ind_Pt  +1.8931e-012   +7.2519e+001   +2.4103e-013   
+4    Valve1.ind_dP  -2.9394e+002   +4.4777e+001   -3.7425e+001   
+5    Valve2.ind_dP  +2.9169e+002   +8.7490e+001   +3.7138e+001   
+
+
+=========================
+ITERATION #16
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.8307e+000   +3.8307e+000   +3.8307e+000   
+2    TsPump.ind_ht  ht             -8.5814e+001   -8.5814e+001   +8.5814e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.4777e+002   +4.4777e+002   +4.4777e+002   
+5    Valve2.ind_dP  dP             +8.7490e+002   +8.7490e+002   +8.7490e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2324e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -2.6822e-003   +1.0000e-004   FALSE     DY1I16
+2    TsPump.dep_ht  D    -1.1193e+002   -8.5814e+001   +1.1193e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -2.3333e-001   +1.0000e-004   FALSE     DY2I16
+3    TsPump.dep_Pt  D    +7.2324e+002   +7.2519e+002   +7.2324e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -2.6894e-003   +1.0000e-004   FALSE     DY3I16
+4    Valve1.dep_W   D    +9.2722e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -7.2780e-002   +1.0000e-005   FALSE     DY4I16
+5    Valve2.dep_W   D    +1.0578e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +5.7779e-002   +1.0000e-005   FALSE     DY5I16
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.3301         errorMagNorm        = 0.2512         convergenceRatio    = 0.7609         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -3.611099e-008
+  1.030525e-001
+ -3.648383e-008
+  4.140562e-002
+  5.540787e-002
+
+
+
+D = 2.231201e+004
+
+Broyden delta-J:
+----------------
+
+ -3.164470e-012  9.916499e-011 -3.063867e-024  4.757274e-010 -4.720832e-010
+  9.030678e-006 -2.829943e-004  8.743578e-018 -1.357618e-003  1.347218e-003
+ -3.197143e-012  1.001889e-010 -3.095501e-024  4.806392e-010 -4.769574e-010
+  3.628449e-006 -1.137047e-004  3.513094e-018 -5.454791e-004  5.413006e-004
+  4.855491e-006 -1.521565e-004  4.701127e-018 -7.299452e-004  7.243536e-004
+
+
+
+Updated J:
+----------
+
+ +8.434966e-010 -1.120444e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478625e-003 -2.611074e-002 -3.197374e-001 +6.635301e-003 +7.436212e-003
+ +8.522057e-010 -1.132012e-009 +2.511456e-003 -1.378957e-003 -1.378958e-003
+ +3.132432e-001 -7.527601e-004 +4.612759e-005 +7.665703e-004 +7.811215e-005
+ +1.744045e-005 -3.002922e-003 +2.409673e-004 -2.133591e-004 +6.367017e-004
+
+
+
+determinant = +6.039422e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.230773: Limiting Independent is # 4 - Valve1.ind_dP]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   -2.8038e-001   +3.7660e-001   -6.4703e-002   
+2    TsPump.ind_ht  -3.6103e+001   +9.4145e+000   -8.3317e+000   
+3    TsPump.ind_Pt  -7.9113e-013   +7.2519e+001   -1.8257e-013   
+4    Valve1.ind_dP  +1.9403e+002   +4.9255e+001   +4.4777e+001   
+5    Valve2.ind_dP  -1.9600e+002   +8.2967e+001   -4.5231e+001   
+
+
+=========================
+ITERATION #17
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.7660e+000   +3.7660e+000   +3.7660e+000   
+2    TsPump.ind_ht  ht             -9.4145e+001   -9.4145e+001   +9.4145e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +4.9255e+002   +4.9255e+002   +4.9255e+002   
+5    Valve2.ind_dP  dP             +8.2967e+002   +8.2967e+002   +8.2967e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2369e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -2.0632e-003   +1.0000e-004   FALSE     DY1I17
+2    TsPump.dep_ht  D    -1.1194e+002   -9.4145e+001   +1.1194e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -1.5893e-001   +1.0000e-004   FALSE     DY2I17
+3    TsPump.dep_Pt  D    +7.2369e+002   +7.2519e+002   +7.2369e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -2.0675e-003   +1.0000e-004   FALSE     DY3I17
+4    Valve1.dep_W   D    +9.8252e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -1.7485e-002   +1.0000e-005   FALSE     DY4I17
+5    Valve2.dep_W   D    +1.0605e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +6.0533e-002   +1.0000e-005   FALSE     DY5I17
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.2512         errorMagNorm        = 0.171          convergenceRatio    = 0.6807         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -2.378541e-008
+  6.810845e-002
+ -2.403099e-008
+  3.849994e-002
+  1.608823e-002
+
+
+
+D = 1.785412e+004
+
+Broyden delta-J:
+----------------
+
+  3.735198e-013  4.809734e-011  1.053955e-024 -2.584906e-010  2.611085e-010
+ -1.069557e-006 -1.377246e-004 -3.017952e-018  7.401761e-004 -7.476724e-004
+  3.773764e-013  4.859394e-011  1.064837e-024 -2.611595e-010  2.638044e-010
+ -6.045929e-007 -7.785212e-005 -1.705970e-018  4.184023e-004 -4.226398e-004
+ -2.526453e-007 -3.253259e-005 -7.128851e-019  1.748406e-004 -1.766113e-004
+
+
+
+Updated J:
+----------
+
+ +8.438701e-010 -1.072346e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.479694e-003 -2.624847e-002 -3.197374e-001 +7.375477e-003 +6.688540e-003
+ +8.525830e-010 -1.083418e-009 +2.511456e-003 -1.378958e-003 -1.378957e-003
+ +3.132426e-001 -8.306123e-004 +4.612759e-005 +1.184973e-003 -3.445277e-004
+ +1.718781e-005 -3.035454e-003 +2.409673e-004 -3.851852e-005 +4.600904e-004
+
+
+
+determinant = +1.180141e-011
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.234107: Limiting Independent is # 4 - Valve1.ind_dP]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   -1.0125e+000   +3.5289e-001   -2.3704e-001   
+2    TsPump.ind_ht  -1.4853e+001   +9.7622e+000   -3.4771e+000   
+3    TsPump.ind_Pt  +2.3163e-013   +7.2519e+001   +5.4226e-014   
+4    Valve1.ind_dP  +2.1040e+002   +5.4181e+001   +4.9255e+001   
+5    Valve2.ind_dP  -2.1191e+002   +7.8006e+001   -4.9609e+001   
+
+
+=========================
+ITERATION #18
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.5289e+000   +3.5289e+000   +3.5289e+000   
+2    TsPump.ind_ht  ht             -9.7622e+001   -9.7622e+001   +9.7622e+001   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.4181e+002   +5.4181e+002   +5.4181e+002   
+5    Valve2.ind_dP  dP             +7.8006e+002   +7.8006e+002   +7.8006e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2404e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -1.5802e-003   +1.0000e-004   FALSE     DY1I18
+2    TsPump.dep_ht  D    -1.1194e+002   -9.7622e+001   +1.1194e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -1.2790e-001   +1.0000e-004   FALSE     DY2I18
+3    TsPump.dep_Pt  D    +7.2404e+002   +7.2519e+002   +7.2404e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -1.5827e-003   +1.0000e-004   FALSE     DY3I18
+4    Valve1.dep_W   D    +9.7202e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.7979e-002   +1.0000e-005   FALSE     DY4I18
+5    Valve2.dep_W   D    +1.0416e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +4.1643e-002   +1.0000e-005   FALSE     DY5I18
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.171          errorMagNorm        = 0.1374         convergenceRatio    = 0.8036         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  6.892065e-009
+ -2.046553e-002
+  6.963225e-009
+ -1.458801e-002
+ -4.719242e-003
+
+
+
+D = 2.092737e+004
+
+Broyden delta-J:
+----------------
+
+ -3.334641e-013 -4.891459e-012  7.628290e-026  6.928996e-011 -6.978781e-011
+  9.901999e-007  1.452487e-005 -2.265171e-019 -2.057520e-004  2.072303e-004
+ -3.369072e-013 -4.941963e-012  7.707052e-026  7.000538e-011 -7.050837e-011
+  7.058232e-007  1.035345e-005 -1.614634e-019 -1.466618e-004  1.477156e-004
+  2.283348e-007  3.349356e-006 -5.223362e-020 -4.744530e-005  4.778620e-005
+
+
+
+Updated J:
+----------
+
+ +8.435366e-010 -1.077238e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478704e-003 -2.623394e-002 -3.197374e-001 +7.169725e-003 +6.895770e-003
+ +8.522461e-010 -1.088360e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132433e-001 -8.202588e-004 +4.612759e-005 +1.038311e-003 -1.968121e-004
+ +1.741614e-005 -3.032105e-003 +2.409673e-004 -8.596382e-005 +5.078766e-004
+
+
+
+determinant = +9.062645e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.373174: Limiting Independent is # 4 - Valve1.ind_dP]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   -5.2290e-001   +3.3338e-001   -1.9513e-001   
+2    TsPump.ind_ht  -1.4898e+001   +1.0318e+001   -5.5596e+000   
+3    TsPump.ind_Pt  -2.2392e-014   +7.2519e+001   -8.3560e-015   
+4    Valve1.ind_dP  +1.4519e+002   +5.9599e+001   +5.4181e+001   
+5    Valve2.ind_dP  -1.4635e+002   +7.2545e+001   -5.4613e+001   
+
+
+=========================
+ITERATION #19
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.3338e+000   +3.3338e+000   +3.3338e+000   
+2    TsPump.ind_ht  ht             -1.0318e+002   -1.0318e+002   +1.0318e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +5.9599e+002   +5.9599e+002   +5.9599e+002   
+5    Valve2.ind_dP  dP             +7.2545e+002   +7.2545e+002   +7.2545e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2447e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -9.9052e-004   +1.0000e-004   FALSE     DY1I19
+2    TsPump.dep_ht  D    -1.1194e+002   -1.0318e+002   +1.1194e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -7.8263e-002   +1.0000e-004   FALSE     DY2I19
+3    TsPump.dep_Pt  D    +7.2447e+002   +7.2519e+002   +7.2447e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -9.9150e-004   +1.0000e-004   FALSE     DY3I19
+4    Valve1.dep_W   D    +9.7403e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.5968e-002   +1.0000e-005   FALSE     DY4I19
+5    Valve2.dep_W   D    +1.0233e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +2.3301e-002   +1.0000e-005   FALSE     DY5I19
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.1374         errorMagNorm        = 0.0857         convergenceRatio    = 0.6237         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -2.119769e-009
+  6.304335e-003
+ -2.141655e-009
+ -8.429366e-003
+ -2.801534e-003
+
+
+
+D = 1.594167e+004
+
+Broyden delta-J:
+----------------
+
+  6.953001e-014  1.981028e-012  2.977441e-027 -1.930576e-011  1.945971e-011
+ -2.067869e-007 -5.891712e-006 -8.855110e-021  5.741663e-005 -5.787449e-005
+  7.024791e-014  2.001483e-012  3.008183e-027 -1.950509e-011  1.966063e-011
+  2.764895e-007  7.877659e-006  1.183994e-020 -7.677031e-005  7.738250e-005
+  9.189243e-008  2.618172e-006  3.935053e-021 -2.551493e-005  2.571839e-005
+
+
+
+Updated J:
+----------
+
+ +8.436062e-010 -1.075257e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478911e-003 -2.623983e-002 -3.197374e-001 +7.227142e-003 +6.837896e-003
+ +8.523164e-010 -1.086359e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132435e-001 -8.123812e-004 +4.612759e-005 +9.615405e-004 -1.194295e-004
+ +1.750803e-005 -3.029487e-003 +2.409673e-004 -1.114787e-004 +5.335949e-004
+
+
+
+determinant = +9.795076e-012
+
+
+
+INDEPENDENT UPDATES - [scaleFactor = 0.770463: Limiting Independent is # 4 - Valve1.ind_dP]
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   -2.0742e-001   +3.1740e-001   -1.5981e-001   
+2    TsPump.ind_ht  -8.9087e+000   +1.1005e+001   -6.8638e+000   
+3    TsPump.ind_Pt  -1.3945e-013   +7.2519e+001   -1.0744e-013   
+4    Valve1.ind_dP  +7.7354e+001   +6.5558e+001   +5.9599e+001   
+5    Valve2.ind_dP  -7.8080e+001   +6.6529e+001   -6.0158e+001   
+
+
+=========================
+ITERATION #20
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1740e+000   +3.1740e+000   +3.1740e+000   
+2    TsPump.ind_ht  ht             -1.1005e+002   -1.1005e+002   +1.1005e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.5558e+002   +6.5558e+002   +6.5558e+002   
+5    Valve2.ind_dP  dP             +6.6529e+002   +6.6529e+002   +6.6529e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2502e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -2.2736e-004   +1.0000e-004   FALSE     DY1I20
+2    TsPump.dep_ht  D    -1.1195e+002   -1.1005e+002   +1.1195e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -1.6996e-002   +1.0000e-004   FALSE     DY2I20
+3    TsPump.dep_Pt  D    +7.2502e+002   +7.2519e+002   +7.2502e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -2.2741e-004   +1.0000e-004   FALSE     DY3I20
+4    Valve1.dep_W   D    +9.8448e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -1.5519e-002   +1.0000e-005   FALSE     DY4I20
+5    Valve2.dep_W   D    +1.0013e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +1.3310e-003   +1.0000e-005   FALSE     DY5I20
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.0857         errorMagNorm        = 0.02306        convergenceRatio    = 0.269          
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -1.232891e-009
+  3.208056e-003
+ -1.245621e-009
+ -9.558897e-003
+ -4.017549e-003
+
+
+
+D = 9.368501e+003
+
+Broyden delta-J:
+----------------
+
+  2.729682e-014  1.172384e-012  1.835102e-026 -1.017979e-011  1.027530e-011
+ -7.102795e-008 -3.050612e-006 -4.775045e-020  2.648843e-005 -2.673694e-005
+  2.757866e-014  1.184488e-012  1.854049e-026 -1.028490e-011  1.038139e-011
+  2.116387e-007  9.089768e-006  1.422798e-019 -7.892633e-005  7.966681e-005
+  8.895052e-008  3.820377e-006  5.979937e-020 -3.317228e-005  3.348350e-005
+
+
+
+Updated J:
+----------
+
+ +8.436334e-010 -1.074084e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478982e-003 -2.624288e-002 -3.197374e-001 +7.253630e-003 +6.811159e-003
+ +8.523440e-010 -1.085174e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132438e-001 -8.032914e-004 +4.612759e-005 +8.826142e-004 -3.976274e-005
+ +1.759698e-005 -3.025666e-003 +2.409673e-004 -1.446510e-004 +5.670784e-004
+
+
+
+determinant = +1.080336e-011
+
+
+
+INDEPENDENT UPDATES - (unscaled)
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +1.3978e-002   +3.1880e-001   +1.3978e-002   
+2    TsPump.ind_ht  -2.0175e+000   +1.1206e+001   -2.0175e+000   
+3    TsPump.ind_Pt  +1.3135e-013   +7.2519e+001   +1.3135e-013   
+4    Valve1.ind_dP  +1.0314e+001   +6.6590e+001   +1.0314e+001   
+5    Valve2.ind_dP  -1.0481e+001   +6.5481e+001   -1.0481e+001   
+
+
+=========================
+ITERATION #21
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1880e+000   +3.1880e+000   +3.1880e+000   
+2    TsPump.ind_ht  ht             -1.1206e+002   -1.1206e+002   +1.1206e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6590e+002   +6.6590e+002   +6.6590e+002   
+5    Valve2.ind_dP  dP             +6.5481e+002   +6.5481e+002   +6.5481e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2519e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -1.2435e-009   +1.0000e-004   TRUE      DY1I21
+2    TsPump.dep_ht  D    -1.1195e+002   -1.1206e+002   +1.1195e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        +1.0115e-003   +1.0000e-004   FALSE     DY2I21
+3    TsPump.dep_Pt  D    +7.2519e+002   +7.2519e+002   +7.2519e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -1.2435e-009   +1.0000e-004   TRUE      DY3I21
+4    Valve1.dep_W   D    +1.0005e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +5.4129e-004   +1.0000e-005   FALSE     DY4I21
+5    Valve2.dep_W   D    +9.9905e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -9.5459e-004   +1.0000e-005   FALSE     DY5I21
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.02306        errorMagNorm        = 0.001492       convergenceRatio    = 0.06473        
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -1.243472e-009
+  3.353075e-003
+ -1.256311e-009
+  5.412929e-004
+ -9.545858e-004
+
+
+
+D = 2.203056e+002
+
+Broyden delta-J:
+----------------
+
+ -7.889495e-014  1.138739e-011 -7.413663e-025 -5.821727e-011  5.915751e-011
+  2.127435e-007 -3.070658e-005  1.999125e-018  1.569853e-004 -1.595207e-004
+ -7.970955e-014  1.150497e-011 -7.490210e-025 -5.881837e-011  5.976832e-011
+  3.434357e-008 -4.957018e-006  3.227223e-019  2.534241e-005 -2.575171e-005
+ -6.056588e-008  8.741845e-006 -5.691302e-019 -4.469209e-005  4.541389e-005
+
+
+
+Updated J:
+----------
+
+ +8.435546e-010 -1.062697e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478769e-003 -2.627359e-002 -3.197374e-001 +7.410615e-003 +6.651638e-003
+ +8.522642e-010 -1.073669e-009 +2.511456e-003 -1.378958e-003 -1.378957e-003
+ +3.132438e-001 -8.082484e-004 +4.612759e-005 +9.079566e-004 -6.551445e-005
+ +1.753642e-005 -3.016924e-003 +2.409673e-004 -1.893431e-004 +6.124923e-004
+
+
+
+determinant = +1.193929e-011
+
+
+
+INDEPENDENT UPDATES - (unscaled)
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +3.1679e-003   +3.1911e-001   +3.1679e-003   
+2    TsPump.ind_ht  +8.3823e-002   +1.1198e+001   +8.3823e-002   
+3    TsPump.ind_Pt  -1.0111e-013   +7.2519e+001   -1.0111e-013   
+4    Valve1.ind_dP  -1.5058e+000   +6.6439e+001   -1.5058e+000   
+5    Valve2.ind_dP  +1.5058e+000   +6.5632e+001   +1.5058e+000   
+
+
+=========================
+ITERATION #22
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1911e+000   +3.1911e+000   +3.1911e+000   
+2    TsPump.ind_ht  ht             -1.1198e+002   -1.1198e+002   +1.1198e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6439e+002   +6.6439e+002   +6.6439e+002   
+5    Valve2.ind_dP  dP             +6.5632e+002   +6.5632e+002   +6.5632e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2519e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          -3.3740e-010   +1.0000e-004   TRUE      DY1I22
+2    TsPump.dep_ht  D    -1.1195e+002   -1.1198e+002   +1.1195e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        +2.6273e-004   +1.0000e-004   FALSE     DY2I22
+3    TsPump.dep_Pt  D    +7.2519e+002   +7.2519e+002   +7.2519e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        -3.3740e-010   +1.0000e-004   TRUE      DY3I22
+4    Valve1.dep_W   D    +1.0004e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +3.7422e-004   +1.0000e-005   FALSE     DY4I22
+5    Valve2.dep_W   D    +9.9987e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -1.2918e-004   +1.0000e-005   FALSE     DY5I22
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.001492       errorMagNorm        = 0.0004751      convergenceRatio    = 0.3184         
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+ -3.374048e-010
+  8.709627e-004
+ -3.408883e-010
+  3.742157e-004
+ -1.291802e-004
+
+
+
+D = 4.542015e+000
+
+Broyden delta-J:
+----------------
+
+ -2.353290e-013 -6.226827e-012  7.511215e-024  1.118601e-010 -1.118601e-010
+  6.074685e-007  1.607367e-005 -1.938914e-017 -2.887511e-004  2.887510e-004
+ -2.377587e-013 -6.291116e-012  7.588765e-024  1.130150e-010 -1.130150e-010
+  2.610034e-007  6.906174e-006 -8.330689e-018 -1.240641e-004  1.240640e-004
+ -9.009903e-008 -2.384029e-006  2.875775e-018  4.282724e-005 -4.282722e-005
+
+
+
+Updated J:
+----------
+
+ +8.433192e-010 -1.068924e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478162e-003 -2.625752e-002 -3.197374e-001 +7.121864e-003 +6.940389e-003
+ +8.520265e-010 -1.079960e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132440e-001 -8.013422e-004 +4.612759e-005 +7.838925e-004 +5.854960e-005
+ +1.744632e-005 -3.019308e-003 +2.409673e-004 -1.465159e-004 +5.696651e-004
+
+
+
+determinant = +1.392997e-011
+
+
+
+INDEPENDENT UPDATES - (unscaled)
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   -3.9434e-004   +3.1907e-001   -3.9434e-004   
+2    TsPump.ind_ht  +3.1056e-002   +1.1195e+001   +3.1056e-002   
+3    TsPump.ind_Pt  +1.3978e-013   +7.2519e+001   +1.3978e-013   
+4    Valve1.ind_dP  -3.1131e-001   +6.6408e+001   -3.1131e-001   
+5    Valve2.ind_dP  +3.1131e-001   +6.5663e+001   +3.1131e-001   
+
+
+=========================
+ITERATION #23
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1907e+000   +3.1907e+000   +3.1907e+000   
+2    TsPump.ind_ht  ht             -1.1195e+002   -1.1195e+002   +1.1195e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6408e+002   +6.6408e+002   +6.6408e+002   
+5    Valve2.ind_dP  dP             +6.5663e+002   +6.5663e+002   +6.5663e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2519e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          +0.0000e+000   +1.0000e-004   TRUE      DY1I23
+2    TsPump.dep_ht  D    -1.1195e+002   -1.1195e+002   +1.1195e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -1.4671e-005   +1.0000e-004   TRUE      DY2I23
+3    TsPump.dep_Pt  D    +7.2519e+002   +7.2519e+002   +7.2519e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        +0.0000e+000   +1.0000e-004   TRUE      DY3I23
+4    Valve1.dep_W   D    +9.9998e+000   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -2.4962e-005   +1.0000e-005   FALSE     DY4I23
+5    Valve2.dep_W   D    +1.0000e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +9.0814e-006   +1.0000e-005   TRUE      DY5I23
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 0.0004751      errorMagNorm        = 3.034e-005     convergenceRatio    = 0.06387        
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+----------------------------------------
+ BROYDEN UPDATE TO JACOBIAN MATRIX
+ FOR SOLVER 'solver'
+----------------------------------------
+Broyden parameters:
+
+W:
+--
+
+  1.555631e-011
+ -4.863403e-005
+  1.571677e-011
+ -2.496184e-005
+  9.081362e-006
+
+
+
+D = 1.947912e-001
+
+Broyden delta-J:
+----------------
+
+ -3.149229e-014  2.480146e-012  1.116324e-023 -2.486160e-011  2.486158e-011
+  9.845504e-008 -7.753736e-006 -3.489988e-017  7.772536e-005 -7.772530e-005
+ -3.181712e-014  2.505728e-012  1.127838e-023 -2.511804e-011  2.511802e-011
+  5.053290e-008 -3.979672e-006 -1.791266e-017  3.989322e-005 -3.989318e-005
+ -1.838437e-008  1.447844e-006  6.516804e-018 -1.451355e-005  1.451353e-005
+
+
+
+Updated J:
+----------
+
+ +8.432877e-010 -1.066444e-009 +3.864742e-003 -1.364865e-003 -1.364865e-003
+ -2.478063e-003 -2.626527e-002 -3.197374e-001 +7.199590e-003 +6.862664e-003
+ +8.519947e-010 -1.077455e-009 +2.511456e-003 -1.378957e-003 -1.378957e-003
+ +3.132441e-001 -8.053219e-004 +4.612759e-005 +8.237857e-004 +1.865641e-005
+ +1.742793e-005 -3.017861e-003 +2.409673e-004 -1.610294e-004 +5.841786e-004
+
+
+
+determinant = +1.154108e-011
+
+
+
+INDEPENDENT UPDATES - (unscaled)
+---------------------------
+COL  SHORT-NAME     DX-UNLIM       LIMIT-VAL      DX-LIMITED   
+1    ind_Valve1Cv   +2.7414e-005   +3.1908e-001   +2.7414e-005   
+2    TsPump.ind_ht  -1.6141e-003   +1.1195e+001   -1.6141e-003   
+3    TsPump.ind_Pt  -1.0842e-013   +7.2519e+001   -1.0842e-013   
+4    Valve1.ind_dP  +1.8723e-002   +6.6410e+001   +1.8723e-002   
+5    Valve2.ind_dP  -1.8723e-002   +6.5661e+001   -1.8723e-002   
+
+
+=========================
+ITERATION #24
+
+INDEPENDENTS
+----------------
+COL  SHORT-NAME     varName        x              xModel         xRef
+1    ind_Valve1Cv   Valve1.Cv      +3.1908e+000   +3.1908e+000   +3.1908e+000   
+2    TsPump.ind_ht  ht             -1.1195e+002   -1.1195e+002   +1.1195e+002   
+3    TsPump.ind_Pt  Pt             +7.2519e+002   +7.2519e+002   +7.2519e+002   
+4    Valve1.ind_dP  dP             +6.6410e+002   +6.6410e+002   +6.6410e+002   
+5    Valve2.ind_dP  dP             +6.5661e+002   +6.5661e+002   +6.5661e+002   
+
+
+
+DEPENDENT ERRORS
+----------------------
+ROW  SHORT-NAME     TYPE y1             y2             yRef           eq_lhs         eq_rhs         eq_ref         errorCon       tolerance      isConverged
+1    dep_PumpPin    D    +7.2519e+002   +7.2519e+002   +7.2519e+002   TsPump.Fl_I.Pt PLOW                          +0.0000e+000   +1.0000e-004   TRUE      DY1I24
+2    TsPump.dep_ht  D    -1.1195e+002   -1.1195e+002   +1.1195e+002   Fl_I.ht        Fl_O.ht        Fl_I.ht        -2.5336e-007   +1.0000e-004   TRUE      DY2I24
+3    TsPump.dep_Pt  D    +7.2519e+002   +7.2519e+002   +7.2519e+002   Fl_I.Pt        Fl_O.Pt        Fl_I.Pt        +0.0000e+000   +1.0000e-004   TRUE      DY3I24
+4    Valve1.dep_W   D    +1.0000e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        -4.4693e-007   +1.0000e-005   TRUE      DY4I24
+5    Valve2.dep_W   D    +1.0000e+001   +1.0000e+001   +1.0000e+001   W_solve        Fl_I.W                        +1.7361e-007   +1.0000e-005   TRUE      DY5I24
+
+No Auxiliary Dependents found in Solver 'solver'
+
+
+CONVERGENCE RATE INFO
+-------------------------
+errorMagNormPrev    = 3.034e-005     errorMagNorm        = 5.423e-007     convergenceRatio    = 0.01787        
+
+broydenLimit        = 0              divergenceLimit     = 2              convergenceLimit    = 1              
+numConvergeFailures = 0              maxConvergeFailures = 3              
+
+
+
+CASE 1 : SOLVER CONVERGENCE STATISTICS for 'solver'
+======================================================
+   CONVERGED = TRUE
+   solver iterations = 24
+   total model passes = 29
+   discon iterations = 0
+   Jacobians generated = 1
+   Broyden updates = 22
+

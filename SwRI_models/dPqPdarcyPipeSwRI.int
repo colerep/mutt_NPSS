@@ -1,0 +1,233 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __dPqPdarcyPipeSwRI__
+#define __dPqPdarcyPipeSwRI__
+
+#include <InterpIncludes.ncp>
+
+extern real Fl_dP.MN;
+extern real dPqP_dmd;
+
+class dPqPdarcyPipeSwRI extends Subelement {
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+  title = "";
+
+  description = isA() + " performs a pressure loss calculation using darcy friction factor.";
+
+  usageNotes = isA() + 
+"  
+
+- This subelement returns the scaled normalized pressure drop      
+(delta P/P), dPnormBase.  The pressure loss is calculated
+as a function of the incoming Mach raised to a user-supplied 
+exponent.";
+
+  background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+  real rough {
+    value = 0.0018;  IOstatus = INPUT;  units = "in";
+    description = "roughness"; 
+  }
+
+  real dP {
+    value = 0;  IOstatus = OUTPUT;  units = "psia";
+    description = "calculated pressure loss";
+  }
+  real Lstar {
+    value = 0;  IOstatus = OUTPUT;  units = "ft";
+    description = "equivalent pipe length"; 
+  }
+  real Haaland {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Haaland explict approx for darcy friction factor"; 
+  }
+  real Cf {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "darcy friction factor"; 
+  }
+  real Re {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Haaland explict approx for darcy friction factor"; 
+  }
+  // real D {
+  //   value = 0;  IOstatus = OUTPUT;  units = "in";
+  //   description = "Equivalent Diameter calculated from flow area";
+  // }
+
+  real Nelbow {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Number of Elbows's included in piping run"; 
+  }
+  real Ntee {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Number of Tee's included in piping run"; 
+  }
+
+  int Nchannel = 1;  
+
+  real vel { units = "ft/sec"; }
+  real D { units = "ft"; }
+  real rho { units = "lbm/ft3"; }
+  real mu { units = "lbm/(ft*sec)"; }
+  
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+// first value in allowedValues list is the default value
+  
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN };
+    description = "flag indicating design/off-design";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+
+// FLOW STATIONS
+ 
+// SOCKETS
+  addInterface(ADIAB_DPNORM);
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+
+    if (name == "switchDes") {
+      if (switchDes == DESIGN){
+        // dPqPMNdes.IOstatus = INPUT ;
+        // expMN.IOstatus = INPUT;
+        // s_dPqPMN.IOstatus = OUTPUT;
+      }   
+      else if (switchDes == OFFDESIGN){
+        // dPqPMNdes.IOstatus = OUTPUT;
+        // expMN.IOstatus = OUTPUT;
+        // s_dPqPMN.IOstatus = INPUT ;
+      }
+    }
+  }
+
+  
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  void calculate() {
+    
+
+
+    //------------------------------------------------------------
+    //get the inlet conditions from parent 
+    //------------------------------------------------------------
+
+    Fl_dP.W /= Nchannel; 
+
+    vel = Fl_dP.V; // ft/sec
+    
+    D = sqrt(Fl_dP.A*4/PI)/12; // in
+    
+    rho = Fl_dP.rhot; // lbm/ft3
+
+    mu = Fl_dP.mut; // lbm/(ft*sec)
+
+
+    //------------------------------------------------------------
+    // calculate Reynolds number
+    //------------------------------------------------------------
+    Re = vel*D*rho/mu;
+
+    //------------------------------------------------------------
+    // RHS of Haaland explicit approx
+    //------------------------------------------------------------
+    Haaland = -1.8*log10(((rough/(D*12))/3.7)**1.11 + 6.9/Re);
+    
+    Cf = (1/(Haaland))**2;
+
+    dP = 0.5*rho*vel**2*(Cf*(L/(D) + Nelbow*12 + Ntee*45))/(32.174*144);
+
+    Lstar = L + Nelbow*30.*D + Ntee*20.*D;
+
+    //------------------------------------------------------------
+    // set the pressure loss in the parent as a ratio of inlet 
+    // pressure
+    //------------------------------------------------------------
+    dPqP_dmd = dP / Fl_dP.Pt;
+
+    // cout << parent.getPathName() << endl;
+    // cout << " Fl_dP.Pt: " << Fl_dP.Pt << endl;
+    // cout << " Fl_dP.Tt: " << Fl_dP.Tt-459.67 << endl;
+    // cout << " Fl_dP.Tt: " << Fl_dP.Tt << endl;
+
+    // cout << " rough: " << rough << endl;
+    // cout << " vel:  " << vel << endl;
+    // cout << " Fl_dP.A:  " << Fl_dP.A << endl;
+    // cout << " D:  " << D << endl;
+    // cout << " rho:  " << rho << endl;
+    // cout << " mu:  " << mu << endl;
+    // cout << " Re: " << Re << endl;
+    // cout << " L:  " << L << endl;
+    // cout << " Haaland: " << Haaland << endl;
+    // cout << " Cf: " << Cf << endl;
+    // cout << " dP: " << dP << endl;
+    // cout << endl;
+  }
+  
+}
+
+#endif
+

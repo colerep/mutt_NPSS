@@ -1,0 +1,10 @@
+// creplogle NPSS_2.8 01/16/23 16:14:52
+// CASE = 1
+.Gen.elecLoad_in = 9.2857313519062448; // ind_GenLoad Gen.elecLoad_in
+Sh.Nmech = 3575; // Sh.ind_Nmech Nmech
+TsTestsection.ht = -313.07917661677897; // TsTestsection.ind_ht ht
+TsTestsection.Pt = 5714.7001700640812; // TsTestsection.ind_Pt Pt
+TsTestsection.Tt = 0; // TsTestsection.ind_Tt Tt
+TsTestsection.W = 10; // TsTestsection.ind_W W
+Valve1.dP = 1150.4477543363414; // Valve1.ind_dP dP
+Valve2.dP = 9335.3351892530845; // Valve2.ind_dP dP

@@ -1,0 +1,100 @@
+////Specify FPT thermo package 
+// string REFPROPPATH="C:/Program Files (x86)/REFPROP";
+
+
+////Specify REFPROP thermo package
+// if ( VERSION.index("2.6.") > -1 ) {
+	// setThermoPackage("REFPROP");
+// } else {
+	// setThermoPackage("REFPROP",REFPROPPATH);
+// } 
+
+
+setThermoPackage("FPT");
+
+Option switchDes {
+	description = "Determines if the model is in design or off-design mode";
+	IOstatus = "input";
+	rewritableValues = FALSE;
+	trigger = FALSE;
+	allowedValues = {"DESIGN","OFFDESIGN"};
+}
+
+// Instantiate Elements 
+Element FlowStart FsCO2 {  
+	Tt = Tcycle;    
+	Pt = Pcycle;  
+	ht = -72.406;
+	W = Wcycle; 
+	Fl_O.comp = "co2";
+	Fl_O.setTotal_hP(ht, Pt);  
+} 
+
+Element FlowStart FsCool {  
+	Fl_O.comp = "water";  
+	Tt = Tcool;  
+	Pt = Pcool; 
+	W = Wcool; 
+	Fl_O.comp = "water";  
+	Fl_O.setTotalTP(Tt, Pt);  
+} 
+
+Element TwoPhaseHX_OD Clr { 
+	switchQ = "EFFECT"; 
+	// switchQ = "Q_des"; 
+	effect_des = 0.7219; 
+	Q_des = 3825457;
+	dPqP1 = 0.0051; 
+	dPqP2 = 0.52; 
+	nNodes = 100; 
+}
+
+Element FlowEnd FeCool { 
+}
+
+Element FlowEnd FeCO2 { 
+}  
+
+Element ClrSpecs { 
+	// //Inlet and Outlet Temperatures and Pressures
+	real Tin_h {units = "F";}
+	real Tout_h {units = "F";}
+	real Tin_c {units = "F";}
+	real Tout_c {units = "F";} 
+	real R {units = "none";}
+	real P {units = "none";}
+	real LMTD {units = "F";}  
+	
+	//Calculations 
+	void calculate(){ 
+		Tin_h = Clr.Fl_I1.Tt - 459.67;  
+		Tin_c = Clr.Fl_I2.Tt - 459.67; 
+		Tout_h = Clr.Fl_O1.Tt - 459.67; 
+		Tout_c = Clr.Fl_O2.Tt - 459.67; 
+		R = (Tin_h-Tout_h)/(Tout_c-Tin_c);
+		P = (Tout_c-Tin_c)/(Tin_h-Tin_c); 
+		LMTD = ((Tin_h-Tout_c)-(Tout_h-Tin_c))/(log((Tin_h-Tout_c)/(Tout_h-Tin_c)));
+	} 
+} 
+
+// Main Flow
+linkPorts("FsCO2.Fl_O","Clr.Fl_I1","F010"); 
+linkPorts("Clr.Fl_O1","FeCO2.Fl_I","F020");
+
+linkPorts("FsCool.Fl_O","Clr.Fl_I2","F101"); 
+linkPorts("Clr.Fl_O2","FeCool.Fl_I","F102"); 
+
+
+// Independent ind_effectiveness {
+	// varName = "Clr.effect_des";
+	// autoSetup = TRUE;
+ // }
+ 
+// Dependent dep_CO2exit {
+    // eq_lhs = "Clr.Fl_O1.Tt";
+    // eq_rhs = "Tcycle_exit";
+    // autoSetup = TRUE;
+ // }
+
+
+

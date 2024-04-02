@@ -1,0 +1,305 @@
+/*******************************************************************************
+© Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+© 2008-2013 NPSS® Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS® software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// Last modified on 2016-04-12 by Jeffrey Bennett
+//
+
+#ifndef __SWRITURBINE__
+#define __SWRITURBINE__
+
+
+#include <InterpIncludes.ncp>
+
+class SwRITurbine extends Element {
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+  // Stator Vane Angle:
+	real alpha {
+    value = 1; IOstatus = INPUT; units = NONE;
+    description = "Stator Vane Angle";
+  }
+  
+  // Efficiency Variables:
+  real isenEffDes {
+    value = 1; IOstatus = INPUT; units = NONE;
+    description = "Isentropic efficiency at cycle design point";
+  }
+  real isenEff {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Isentropic efficiency.  Equals isenEffDes during design.";
+  }
+
+
+  //Pressure Difference and Head Variables:
+  real DPdes {
+    value=1; IOstatus = INPUT ; units = NONE;
+    description = "Total-to-total pressure difference at cycle design point.";
+  }
+  real DP {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Total-to-total pressure difference.  Equals DPdes during design.";
+  }  
+  real actualHead {
+    value=1; IOstatus = OUTPUT ; units = NONE;
+    description = "Actual Head.  ";
+  }
+  real isenHead {
+    value=1; IOstatus = OUTPUT ; units = NONE;
+    description = "Isentropic Head.  ";
+  }
+
+
+  // Power
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total power supplied to the shaft (total power - bleed power)";
+  }
+  
+  // Inlet Volumetric Flowrate
+  real Qdotin {
+    value = 1;  IOstatus = OUTPUT;  units = NONE;
+    description = "Compressor Inlet Volumentric Flowrate in ft3/s";
+  }
+  
+  // Calculation Variables
+  
+  int debug {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Determines if this is the first time through the calcualtions.";
+  }
+  
+    int useMaps {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Determines if this is the first time through the calcualtions.";
+  }
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+  Option switchDes {
+    allowedValues = { "DESIGN", "OFFDESIGN" };
+    description = "Determines if the element is in design or off-design mode";
+    trigger = 1;
+    
+  }
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary incoming flow";
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exiting flow";
+  }
+
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+  ShaftOutputPort Sh_O {
+    description = "Mechanical connection to the shaft";
+  }
+
+// FLOW STATIONS
+
+  FlowStation Fl_Oisen {
+    description = "Temporary FlowStation used to calculate isentropic compression conditions";
+  }
+
+// SOCKETS
+
+Socket S_map {
+  allowedValues = { "isenEff", "isenHead"}
+  description = "Socket to calculate turbine map performance";
+  socketType = "TURBINE_MAP";
+}
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+  
+    if ( name == "switchDes" ){
+            // User provides initial guesses for W, P, h
+            // and W, P, h are all varied by the solver.
+            // Solver dependents are active for W, P, and h.
+            if ( switchDes == "OFFDESIGN" && !S_map.isEmpty() ){
+                useMaps = 1;
+            }
+            else {
+                useMaps = 0;
+            }
+    }   
+  }
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+	void calculate() {
+			  			
+		//-------------------------------------------------------------------------
+		// obtain inlet flow station variables
+		//-------------------------------------------------------------------------
+		real  Win  = Fl_I.W;
+		real  TtIn = Fl_I.Tt;
+		real  PtIn = Fl_I.Pt;
+		real  htIn = Fl_I.ht;
+		real  Sin  = Fl_I.s;
+		real  RtIn = Fl_I.Rt;
+		real  rhotin = Fl_I.rhot;
+		
+		//-----------------------------------------------------------------------
+		// Copy inlet conditions to outlet port and temporary flow station
+		//-----------------------------------------------------------------------
+		Fl_O.copyFlow( "Fl_I" );
+		Fl_Oisen.copyFlow( "Fl_I" );
+
+		//-----------------------------------------------------------------------
+		// Inlet Volumetric Flow Rate
+		//-----------------------------------------------------------------------
+		Qdotin = Win / rhotin; 
+
+		//-----------------------------------------------------------------------
+		// execute the map, if it is enabled (and exists)
+		//-----------------------------------------------------------------------
+		if( useMaps) {
+			// Funciton of Inlet Volumetric Flow (Qdotin), and Stator Vane Angle, Alpha
+			// Sets isenEff_map and actualHead_map
+			S_map.execute();	
+			
+			// Set ideal outlet conditions using isentropic head (from map) and inlet entropy
+			real htIdealOut = htIn - isenHead;
+			real SidealOut = Sin;
+			Fl_Oisen.setTotal_hS( htIdealOut, SidealOut);
+			
+			// Calculate outlet pressure based on ideal outlet conditions
+			real PtOut = Fl_Oisen.Pt;
+			DP = PtIn - PtOut;
+				
+			// Set acutal outlet conditions
+			actualHead = (isenHead) * isenEff;	
+			real htOut = htIn - actualHead;		
+			Fl_O.setTotal_hP( htOut, PtOut );
+
+			// cout << "htIdealOut 		" << htIdealOut << endl;
+			// cout << "htOut	 			" << htOut << endl;
+			
+		} 
+		else {
+			// Set DP and isenEff using design condition in place of using a map
+			isenEff = isenEffDes;
+			DP = DPdes;
+			
+			// Set ideal outlet conditions using DP and inlet entropy
+			real PtOut = PtIn + DP;
+			real SidealOut = Sin;
+			Fl_Oisen.setTotalSP( SidealOut, PtOut );
+			
+			// Calculate ideal outlet enthalpy using set outlet
+			real htIdealOut = Fl_Oisen.ht;
+			isenHead = htIn - htIdealOut;
+				
+			// Set acutal outlet conditions
+			actualHead = (isenHead) * isenEff;	
+			real htOut = htIn - actualHead;		
+			Fl_O.setTotal_hP( htOut, PtOut );
+		}
+				
+		if (debug == 1) {
+			cout << "Qdotin 				" << Qdotin << endl;
+			cout << "alpha	 				" << alpha << endl;
+			cout << "Isentropic Head 		" << actualHead_map << endl;
+			cout << "Isentropic Efficiency 	" << isenEff_map << endl;
+			cout << "------------------" << endl;
+		}
+
+		//--------------------------------------------------------------
+		// determine the overall power prior to bleed calculations
+		//--------------------------------------------------------------
+		pwr = Win * (  htIn - htOut ) * C_BTU_PER_SECtoHP;
+
+		if (debug == 1) {
+			cout << "Fl_I - W:   " << Fl_Oisen.W<<endl;
+			cout << "Fl_I - Pt:  " << Fl_I.Pt<<endl;
+			cout << "Fl_I - Tt:  " << Fl_I.Tt<<endl;
+			cout << "Fl_I - ht:  " << Fl_I.ht<<endl;
+			cout << "Fl_I - s:  " << Fl_I.s<<endl;
+			cout << "Fl_I - rho:  " << Fl_I.rhot<<endl;
+			cout << "Fl_I - Comp:" << Fl_I.comp<<endl;
+			cout << "---------------" <<endl;
+			cout << "Fl_Oisen - W:   " << Fl_Oisen.W<<endl;
+			cout << "Fl_Oisen - Pt:  " << Fl_Oisen.Pt<<endl;
+			cout << "Fl_Oisen - Tt:  " << Fl_Oisen.Tt<<endl;
+			cout << "Fl_Oisen - ht:  " << Fl_Oisen.ht<<endl;
+			cout << "Fl_Oisen - s:  " << Fl_Oisen.s<<endl;
+			cout << "Fl_I - rho:  " << Fl_Oisen.rhot<<endl;
+			cout << "Fl_Oisen - Comp:" << Fl_Oisen.comp<<endl;
+			cout << "---------------" <<endl;
+			cout << "Fl_O - W:   " << Fl_O.W<<endl;
+			cout << "Fl_O - Pt:  " << Fl_O.Pt<<endl;
+			cout << "Fl_O - Tt:  " << Fl_O.Tt<<endl;
+			cout << "Fl_O - ht:  " << Fl_O.ht<<endl;
+			cout << "Fl_O - s:  " << Fl_O.s<<endl;
+			cout << "Fl_I - rho:  " << Fl_O.rhot<<endl;
+			cout << "Fl_O - Comp:" << Fl_O.comp<<endl;
+			cout << "---------------" <<endl;
+			
+			cout << "Isentropic Variables:" << endl;
+			cout << "-" << endl;
+			cout << "Isentropic Efficiency 	" << isenEff << endl;
+			cout << "Isentropic Head 		" << actualHead << endl;
+			cout << "------------------" << endl;
+
+			if( !S_map.isEmpty()) {
+				cout << "Isnetropic Head Map		" << actualHead_map << endl;
+				cout << "Isentropic Efficiency Map 	" << isenEff_map << endl;
+				cout << "actualHead Calc-Map  [%] " << ((actualHead - actualHead_map)/ actualHead_map * 100) << endl;	
+				cout << "isenEff Calc-Map [%]	" << ((isenEff - isenEff_map)/ isenEff_map * 100)  << endl;
+			}
+			
+			cout << "------------------" << endl;
+			
+		} // end Debug output
+		
+	} // end the calculate() function
+	
+} // end SwRICompressor
+#endif

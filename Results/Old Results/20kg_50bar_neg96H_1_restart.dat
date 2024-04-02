@@ -1,0 +1,9 @@
+// creplogle NPSS_2.8 01/27/23 15:40:33
+// CASE = 1
+.Valve2.Cv = 6.6984489113926946; // ind_Valve2Cv Valve2.Cv
+Sh.Nmech = 3575; // Sh.ind_Nmech Nmech
+TsPump.ht = -111.94742731713752; // TsPump.ind_ht ht
+TsPump.Pt = 725.18877658930671; // TsPump.ind_Pt Pt
+TsPump.Tt = 0; // TsPump.ind_Tt Tt
+TsPump.W = 20; // TsPump.ind_W W
+Valve2.dP = 656.61158158328089; // Valve2.ind_dP dP

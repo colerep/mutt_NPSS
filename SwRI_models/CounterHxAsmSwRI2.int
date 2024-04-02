@@ -1,0 +1,331 @@
+#ifndef __CounterHxAsmSwRI__
+#define __CounterHxAsmSwRI__
+
+#include <InterpIncludes.ncp>
+
+class CounterHxAsmSwRI extends Assembly {
+
+	// ---------------------------------------------------------------------------
+	// Setup Variables
+	// ---------------------------------------------------------------------------
+
+
+	// Number of Component Stages
+	int Nstages {
+		value = 1;
+		IOstatus = INPUT;
+		trigger = 1;
+	}
+	int _NstagesOld {
+		value = 1;
+		IOstatus = OUTPUT;
+	}
+	// Component Design Pressure Ratio
+	real PRdes {
+		value = 1.0;
+		trigger = 1;
+		IOstatus = INPUT;
+	}
+	
+
+	//----------------------------------------------------------------------------
+	// Internal Variables
+	//----------------------------------------------------------------------------
+	//int Nstages = 8;
+	string _stageStr;
+	string _stageNames[];
+	string _coolerStr;
+	string _coolerNames[];
+	string _fluidLinkStr;
+	string _fluidLinkNames[];
+	string _shaftLinkStr;
+	string _shaftLinkNames[];
+
+
+	//----------------------------------------------------------------------------
+	// Option Variables
+	//----------------------------------------------------------------------------
+	Option switchPR {
+    allowedValues = { "TOTAL", "STAGE" }
+    description = "Determines if Pressure Ratio (*PRdes) is specified at the stage or Component Level";
+    IOstatus = INPUT;
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+	string coolerMode {
+		value = "Q";
+		trigger = 1;
+	} // Mode
+
+	//----------------------------------------------------------------------------
+	// Functions
+	//----------------------------------------------------------------------------
+	void variableChanged(string name, any oldVal) {
+	  int j;
+
+
+		if (name == "Nstages") {
+			if (!(Nstages == _NstagesOld)) {
+				if (exists("subSh")) {
+					_dest();
+					_init();
+				}
+				_NstagesOld = Nstages;
+			}
+		}
+
+		// Overall Properties
+	  if (name == "PRdes") {
+	    stagePRdes = PRdes**(1./Nstages);
+	  }
+
+		// Stage Properties
+	  if (name == "stagePRdes") {
+	    // Update
+	    for (j=0; j<_stageNames.entries(); j++) {
+	      _stageNames[j]->PRdes = stagePRdes;
+	    }
+	  }
+	  if (name == "stageEffDes") {
+	    // Update
+	    for (j=0; j<_stageNames.entries(); j++) {
+	      _stageNames[j]->effDes = stageEffDes;
+	    }
+	  }
+
+		// Cooler Properties
+	  if (name == "coolerTout") {
+	    // Update
+	    for (j=0; j<_coolerNames.entries(); j++) {
+	      _coolerNames[j]->Tout = coolerTout;
+	    }
+	  }
+		if (name == "coolerToutDes") {
+	    // Update
+	    for (j=0; j<_coolerNames.entries(); j++) {
+	      _coolerNames[j]->ToutDes = coolerToutDes;
+	    }
+	  }
+		if (name == "coolerTamb") {
+			// Update
+			for (j=0; j<_coolerNames.entries(); j++) {
+				_coolerNames[j]->Tamb = coolerTamb;
+			}
+		}
+	  if (name == "coolerDt") {
+	    // Update
+	    for (j=0; j<_coolerNames.entries(); j++) {
+	      _coolerNames[j]->dT = coolerDt;
+	    }
+	  }
+	  if (name == "coolerQ") {
+	    // Update
+	    for (j=0; j<_coolerNames.entries(); j++) {
+	      _coolerNames[j]->Q = coolerQ;
+	    }
+	  }
+	  if (name == "coolerMode") {
+	    // Update
+	    for (j=0; j<_coolerNames.entries(); j++) {
+	      _coolerNames[j]->switchHeat = coolerMode;
+	    }
+	  }
+
+	}
+
+	void postexecute() {
+
+		// Post process performance
+
+		// Inlet and outlet fluid ports
+		string FS1, FS2;
+		FS1 = _stageNames[0]->Fl_I.getPathName();
+		FS2 = _coolerNames[Nstages-1]->Fl_O.getPathName();
+
+		// Compute Pressure Ratio
+		PR = FS2->Pt / FS1->Pt;
+
+		// Compute efficiency
+		real s1, p1, p2, h1, h2, h2s;
+		s1 = FS1->s;
+
+		p1 = FS1->Pt;
+		p2 = FS2->Pt;
+		h1 = FS1->ht;
+		h2 = FS2->ht;
+
+		FlowStation FsTemp;
+		FsTemp.copyFlow(FS1);
+		FsTemp.setTotalSP(s1,p2);
+		h2s = FsTemp.ht;
+
+		eff = (h2s - h1)/(h2-h1);
+
+		// Other
+	}
+
+
+	//----------------------------------------------------------------------------
+	// Create the element internals
+	//----------------------------------------------------------------------------
+
+	void initStageVariables(string stageStr) {
+		// Set Compressor properties
+		stageStr->PRdes 	= stagePRdes;
+		stageStr->effDes 	= stageEffDes;
+	}
+
+	void initCoolerVariables(string coolerStr) {
+		// Set Cooler properties
+		coolerStr->Tout = coolerTout;
+		coolerStr->ToutDes = coolerToutDes;
+		coolerStr->Tamb = coolerTamb;
+		coolerStr->dT 	= coolerDt;
+		coolerStr->Q 		= coolerQ;
+		coolerStr->switchHeat = coolerMode;
+	}
+
+	real _init() {
+		int j;
+
+		// cout << "_init(), creating Nstages " << Nstages << endl;
+		for (j=0;j<Nstages;j++) {
+			// Compressor
+			_stageStr = strFmt("sCmp%02i",j);
+			_stageNames.append(_stageStr);
+			create("Element","Compressor",_stageStr);
+			// _stageStr->PRdes = 3.0**(1./Nstages);
+			// _stageStr->effDes = 0.80;
+			initStageVariables(_stageStr);
+
+			// Cooler
+			_coolerStr = strFmt("sCool%02i",j);
+			_coolerNames.append(_coolerStr);
+			create("Element","HeaterSwRI",_coolerStr);
+			// _coolerStr->Tout = 700;
+			// _coolerStr->switchHeat = "TEMP";
+			initCoolerVariables(_coolerStr);
+
+			// Internal Fluid Links
+			if (j>0) {
+				// Link cooler(n-1) to compressor(n)
+				_fluidLinkStr = strFmt("Fs%02i",j*2-1);
+				_fluidLinkNames.append(_fluidLinkStr);
+				linkPorts(_coolerNames[j-1]+".Fl_O",_stageStr+".Fl_I",_fluidLinkStr);
+			}
+			// Link compressor(n) to cooler(n)
+			_fluidLinkStr = strFmt("Fs%02i",j*2);
+			_fluidLinkNames.append(_fluidLinkStr);
+			linkPorts(_stageStr+".Fl_O",_coolerStr+".Fl_I",_fluidLinkStr);
+
+		} // for j
+
+		// cout << " _stageNames " << _stageNames << endl;
+		// if (!exists("Fl_I")) {
+			promotePort(_stageNames[0]+".Fl_I","Fl_I");
+			promotePort(_coolerNames[Nstages-1]+".Fl_O","Fl_O");
+		// }
+
+		create("Element","SubShaftSwRI","subSh");
+		// ShaftInputPort
+		for (j=0; j<Nstages; j++) {
+			// Shaft Link Name
+			_shaftLinkStr = "subSh_" + _stageNames[j];
+			_shaftLinkNames.append(_shaftLinkStr);
+			// _shaftLinkStr.replace(".","_");
+			// Create ShaftInputPort
+			create("ShaftInputPort","ShaftInputPort","subSh."+_shaftLinkStr);
+			// Link Element Sh_O to subSh.ShaftInputPort
+			//linkPorts(_stageNames[j]+".Sh_O", "subSh."+_shaftLinkStr, "Sh_"+_stageNames[j]);
+			linkPorts(_stageNames[j]+".Sh_O", "subSh."+_shaftLinkStr,_shaftLinkStr);
+		}
+
+
+		// Shaft output port
+		if (doCoolerShaft) {
+			for (j=0; j<Nstages; j++) {
+				// Create a Cooler ShaftOutputPort
+				create("ShaftOutputPort","ShaftOutputPort",_coolerNames[j]+".Sh_O");
+				// Shaft Link Name
+				_shaftLinkStr = "subSh_" + _coolerNames[j];
+				_shaftLinkNames.append(_shaftLinkStr);
+				// _shaftLinkStr.replace(".","_");
+				// Create ShaftInputPort
+				create("ShaftInputPort","ShaftInputPort","subSh."+_shaftLinkStr);
+				// Link Element Sh_O to subSh.ShaftInputPort
+				linkPorts(_coolerNames[j]+".Sh_O", "subSh."+_shaftLinkStr,_shaftLinkStr);
+			}
+
+		}
+
+		// if (!exists("Sh_O")) {
+			promotePort("subSh.Sh_O", "Sh_O");
+		// }
+
+
+		//
+		// for (j=0;j<Nstages;j++) {
+		//   _shaftLinkStr = strFmt("Sh_O%02i",j);
+		//   promotePort(_stageNames[j]+".Sh_O",_shaftLinkStr);
+		// } // for j
+
+		//
+		// cout << "Debug" << endl;
+		// string s[] = {"Link", "FluidInputPort", "FluidOutputPort", "ShaftOutputPort" };
+		// for (j=0;j<s.entries();j++) {
+		// 	cout << s[j] << " " << list(s[j],0) << endl;
+		// }
+
+		setAlias("subSh.pwr","pwr");
+	} // _init()
+
+	void _dest() {
+
+		// cout << "_dest(), Deleting All " << Nstages << endl;
+
+		int j;
+
+		string fl_i[];
+		fl_i = list("FluidInputPort",0);
+		// cout << fl_i << endl;
+
+		string fl_o[];
+		fl_o = list("FluidOutputPort",0);
+		// cout << fl_o << endl;
+
+		string sh_o[];
+		sh_o = list("ShaftOutputPort",0);
+		// cout << sh_o << endl;
+
+		// Remove Ports
+		/*
+		unpromotePort("Fl_I");
+		unpromotePort("Fl_O");
+		unpromotePort("Sh_O");
+		*/
+
+		// unlink Shaft
+		for (j=0; j<_shaftLinkNames.entries(); j++) {
+			unlink(_shaftLinkNames[j]);
+			delete("subSh."+_shaftLinkNames[j]);
+		}
+		delete("subSh");
+
+		// Unlink fluid
+		for (j=0; j<_fluidLinkNames.entries(); j++) {
+			unlink(_fluidLinkNames[j]);
+		}
+
+		// Delete Compressor Elements
+		for (j=0; j<_stageNames.entries(); j++) {
+			delete(_stageNames[j]);
+		}
+
+		// Delete Coolers
+		for (j=0; j<_coolerNames.entries(); j++) {
+			delete(_coolerNames[j]);
+		}
+
+	}
+} // Class
+
+#endif

@@ -1,0 +1,398 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __HXLINK__
+#define __HXLINK__
+
+#include <InterpIncludes.ncp>
+
+class HxLink extends Element {
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+ title = ""; 
+  
+  description = isA() + " represents part of a discretized heat exchanger that models 
+  thermal energy transfer between two counter-flowing streams for both design and off-
+  design conditons while keeping the heat exchanger model dimensionless. This element 
+  is designed to be used as a part of the NodalCounterHx assembly, as it relies on 
+  some variables defined at the assembly level. See NodalCounterHx.inc for more details.";
+  
+  usageNotes = isA() +
+  "
+  -  A number of HxLinks are created upon instantiation of a NodalCounterHx assembly. This 
+  element performs calculations between each heat exchanger node. During design mode, the 
+  total heat exchanger duty (Q) is uniformly distributed amongst the links. Each stream's 
+  conductance (hA1 and hA2) is then determined by the specified conductance ratio (Default 
+  hAratio = 1). Lastly, the average thermodynamic properties and pressure drop for each 
+  stream are calculated. During off-design mode, it scales each stream's conductance based 
+  off the Dittus-Boelter correlation to determine the links total duty and outlet conditions.
+  ";
+  
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+  int linkIndex{
+	value = 1; IOstatus = INPUT;  units = NONE;
+	description = "Index with respect to stream 1 inlet";  
+  }
+  int channelIndex{
+	value = 1; IOstatus = INPUT;  units = NONE;
+	description = "Index with respect to stream 2 inlet (Cross-Flow HX only)";  
+  }
+  real Q {
+	value = 0; IOstatus = INPUT;  units = BTU_PER_SEC;
+	description = "Actual heat transfer between two streams";
+  }
+  real dP1_des {
+	value = 0; IOstatus = INPUT;  units = PSIA;
+	description = "Pressure drop between nodes for stream 1";
+  }
+  real dP2_des {
+	value = 0; IOstatus = INPUT;  units = PSIA;
+	description = "Pressure drop between nodes for stream 2";
+  }
+  real dP1 {
+	value = 0; IOstatus = INPUT;  units = PSIA;
+	description = "Pressure drop between nodes for stream 1";
+  }
+  real dP2 {
+	value = 0; IOstatus = INPUT;  units = PSIA;
+	description = "Pressure drop between nodes for stream 2";
+  }
+  real MTD {
+	value = 0; IOstatus = OUTPUT; units = RANKINE;
+	description = "Mean temperature difference between two nodes";
+  }
+  real k1_des {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_FT_R;
+	description = "Average design thermal conductivity for stream 1";
+  }
+  real k2_des {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_FT_R;
+	description = "Average design thermal conductivity for stream 2";
+  }
+  real mu1_des {
+	value = 0; IOstatus = OUTPUT; units = LBM_PER_FT_SEC;
+	description = "Average design viscosity for stream 1";
+  }
+  real mu2_des {
+	value = 0; IOstatus = OUTPUT; units = LBM_PER_FT_SEC;
+	description = "Average design viscosity for stream 2";
+  }
+  real Pr1_des {
+	value = 0; IOstatus = OUTPUT; units = NONE;
+	description = "Average design Prandtl number for stream 1";
+  }
+  real Pr2_des {
+	value = 0; IOstatus = OUTPUT; units = NONE;
+	description = "Average design Prandtl number for stream 2";
+  }
+  real rho1_des {
+	value = 0; IOstatus = OUTPUT; units = LBM_PER_FT3;
+	description = "Average design density for stream 1";
+  }
+  real rho2_des {
+	value = 0; IOstatus = OUTPUT; units = LBM_PER_FT3;
+	description = "Average design density for stream 2";
+  }
+  real UA_des {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Design Overall heat transfer coefficient";
+  }
+  real hA1_des {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Design overall heat transfer coefficient for stream 1";
+  }
+  real hA2_des {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Design overall heat transfer coefficient for stream 2";
+  }
+  real UA {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Overall heat transfer coefficient";
+  }
+  real hA1 {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Overall heat transfer coefficient for stream 1";
+  }
+  real hA2 {
+	value = 0; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+	description = "Overall heat transfer coefficient for stream 2";
+  }
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN }
+    description = "Design/Offdesign switch";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  // Geometry Switch
+  
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+  // FLUID PORTS
+  
+  FluidInputPort Fl_I1 {
+    description = "Fluid input port 1" ;
+  }
+  FluidInputPort Fl_I2 {
+    description = "Fluid input port 2" ;
+  }
+  FluidOutputPort Fl_O1 {
+    description = "Fluid output port 1" ;
+  }
+  FluidOutputPort Fl_O2 {
+    description = "Fluid output port 2" ;
+  }
+   
+  
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS 
+  
+  FlowStation Fl_temp1 {
+    description = "Temporary FlowStation used for intermediate calculations for stream 1.";
+  }
+  FlowStation Fl_temp2 {
+	description = "Temporary FlowStation used for intermediate calculations for stream 2.";
+  }
+  
+  // SOCKETS
+
+  // TABLES  
+  
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+  
+  
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+	if( name =="switchDes" ) {
+		if( switchDes == "DESIGN" ) {
+		} 
+		else if( switchDes == "OFFDESIGN" ) {
+		}
+	} 
+  }  
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  void calculate(){
+	if (switchDes == "DESIGN") {
+		//-------------------------------------------------------------------------
+		// Copy inlet flow to outlet for composition and mass flow rate
+		//-------------------------------------------------------------------------	
+		Fl_O1.copyFlow("Fl_I1");
+		Fl_O2.copyFlow("Fl_I2");
+		
+		//-------------------------------------------------------------------------
+		// Counter-Flow Node Design Calc 
+		//-------------------------------------------------------------------------
+		if (parent.parent.hasInterface("NodalCounterHx")) {			
+			//-------------------------------------------------------------------------
+			// Set Outlet Conditions from Q calculated from parent element
+			//-------------------------------------------------------------------------	
+			Fl_O1.setTotal_hP(Fl_I1.ht - Q*Qsign / Fl_I1.W, Fl_I1.Pt - dP1_des );
+			Fl_O2.setTotal_hP(Fl_I2.ht + Q*Qsign / Fl_I2.W, Fl_I2.Pt - dP2_des );
+		}
+
+		//-------------------------------------------------------------------------
+		// Set composition for temporary flow stations
+		//-------------------------------------------------------------------------			
+		Fl_temp1.copyFlow("Fl_I1");
+		Fl_temp2.copyFlow("Fl_I2");
+		
+		//-------------------------------------------------------------------------
+		// Cross-Flow Node Design Calc 
+		//-------------------------------------------------------------------------
+		if (parent.parent.hasInterface("NodalCrossHx")) {
+			//------------------------------------------------------------------
+			// set pressure drop conditions
+			//------------------------------------------------------------------
+			Fl_O1.setTotal_hP(Fl_I1.ht, Fl_I1.Pt - dP1_des);  
+			Fl_O2.setTotal_hP(Fl_I2.ht, Fl_I2.Pt - dP2_des);			
+
+			//-------------------------------------------------------------------------
+			// Determine Qmax based off enthalpy change using stream 1 inlet
+			//-------------------------------------------------------------------------
+			Fl_O1.setTotalTP(Fl_I2.Tt,Fl_O1.Pt);
+			real qmax1 = Fl_I1.W*abs(Fl_I1.ht - Fl_O1.ht);
+			
+			//-------------------------------------------------------------------------
+			// Determine Qmax based off enthalpy change using stream 2 inlet
+			//-------------------------------------------------------------------------
+			Fl_O2.setTotalTP(Fl_I1.Tt,Fl_O2.Pt);
+			real qmax2 = Fl_I2.W*abs(Fl_I2.ht - Fl_O2.ht);
+
+			//-------------------------------------------------------------------------
+			// Determine max achievable heat transfer based off inlet conditions
+			//-------------------------------------------------------------------------
+			real qmax = min(qmax1,qmax2);
+			
+			//-------------------------------------------------------------------------
+			// Determine actual Q based off design effectiveness
+			//-------------------------------------------------------------------------
+			Q = effect_des*qmax;
+			
+			//-------------------------------------------------------------------------
+			// Set outlet conditions
+			//-------------------------------------------------------------------------
+			Fl_O1.setTotal_hP(Fl_I1.ht - Q*Qsign / Fl_I1.W, Fl_O1.Pt);
+			Fl_O2.setTotal_hP(Fl_I2.ht + Q*Qsign / Fl_I2.W, Fl_O2.Pt); 
+			
+		}		
+		//-------------------------------------------------------------------------
+		// Define state based off average enthalpy and pressure
+		//-------------------------------------------------------------------------	
+		Fl_temp1.setTotal_hP((Fl_I1.ht + Fl_O1.ht)/2, (Fl_I1.Pt + Fl_O1.Pt)/2);
+		Fl_temp2.setTotal_hP((Fl_I2.ht + Fl_O2.ht)/2, (Fl_I2.Pt + Fl_O2.Pt)/2);
+		
+		//-------------------------------------------------------------------------
+		// Save average thermal properties from design
+		//-------------------------------------------------------------------------	
+		k1_des = Fl_temp1.kt;
+		mu1_des = Fl_temp1.mut;
+		Pr1_des = Fl_temp1.Prt;
+		rho1_des = Fl_temp1.rhot;
+		k2_des = Fl_temp2.kt;
+		mu2_des= Fl_temp2.mut;
+		Pr2_des = Fl_temp2.Prt;
+		rho2_des = Fl_temp2.rhot;
+			
+		//-------------------------------------------------------------------------
+		// Mean temperature difference
+		//-------------------------------------------------------------------------
+		// Log mean temperature difference between each node
+		//MTD = (abs(T1node[i-1]-T2node[i-1]) - abs(T1node[i]-T2node[i])) / log(abs(T1node[i-1]-T2node[i-1]) / abs(T1node[i]-T2node[i]));
+		// Mean temperature difference between each node
+		MTD = abs(Fl_temp1.Tt - Fl_temp2.Tt);
+		
+		//-------------------------------------------------------------------------
+		// Overall heat transfer coefficient between each node
+		//-------------------------------------------------------------------------			
+		UA_des = Q / MTD;
+		UA = UA_des;
+		
+		//-------------------------------------------------------------------------
+		// Overall heat transfer coefficients for each stream based of hAratio
+		//-------------------------------------------------------------------------
+		hA1_des = UA_des*(hAratio + 1);
+		hA2_des = hA1_des / hAratio;
+		hA1 = hA1_des;
+		hA2 = hA2_des;
+	}
+	if (switchDes == "OFFDESIGN") {				
+		//-------------------------------------------------------------------------
+		// Define state based off average enthalpy and pressure
+		//-------------------------------------------------------------------------	
+		Fl_temp1.setTotal_hP((Fl_I1.ht + Fl_O1.ht)/2, (Fl_I1.Pt + Fl_O1.Pt)/2);
+		Fl_temp2.setTotal_hP((Fl_I2.ht + Fl_O2.ht)/2, (Fl_I2.Pt + Fl_O2.Pt)/2);
+		
+		//-------------------------------------------------------------------------
+		// Scale hA for each stream using nusselt number correlation
+		//-------------------------------------------------------------------------	
+		hA1 = hA1_des * ( Fl_temp1.kt / k1_des)  
+					  * ((Fl_I1.W / Fl_temp1.mut) / (W1_des / mu1_des))**x1
+					  * ( Fl_temp1.Prt / Pr1_des)**y1;
+		hA2 = hA2_des * ( Fl_temp2.kt / k2_des)  
+					  * ((Fl_I2.W / Fl_temp2.mut) / (W2_des / mu2_des))**x2
+					  * ( Fl_temp2.Prt / Pr2_des )**y2;
+		
+		//-------------------------------------------------------------------------
+		// Scale dP for each stream 
+		//-------------------------------------------------------------------------	
+		dP1 = dP1_des * ((Fl_I1.W**2)/(Fl_temp1.rhot)) / ((W1_des**2)/(rho1_des));
+		dP2 = dP2_des * ((Fl_I2.W**2)/(Fl_temp2.rhot)) / ((W2_des**2)/(rho2_des));
+		
+		//-------------------------------------------------------------------------
+		// Calculate overall heat transfer coefficient
+		//-------------------------------------------------------------------------
+		UA = (1/hA1 + 1/hA2)**-1;
+		
+		//-------------------------------------------------------------------------
+		// Mean temperature difference
+		//-------------------------------------------------------------------------
+		// Log mean temperature difference between each node
+		//MTD = (abs(T1node[i-1]-T2node[i-1]) - abs(T1node[i]-T2node[i])) / log(abs(T1node[i-1]-T2node[i-1]) / abs(T1node[i]-T2node[i]));
+		// Mean temperature difference between each node
+		MTD = abs(Fl_temp1.Tt - Fl_temp2.Tt);
+		
+		//-------------------------------------------------------------------------
+		// Calculate the duty at each node
+		//-------------------------------------------------------------------------
+		Q = UA * MTD;	
+		
+		//-------------------------------------------------------------------------
+		// Set Outlet Conditions
+		//-------------------------------------------------------------------------	
+		Fl_O1.setTotal_hP(Fl_I1.ht - Q*Qsign / Fl_I1.W, Fl_I1.Pt - dP1 );
+		Fl_O2.setTotal_hP(Fl_I2.ht + Q*Qsign / Fl_I2.W, Fl_I2.Pt - dP2 );
+		
+		//-------------------------------------------------------------------------
+		// Update arrays 
+		//-------------------------------------------------------------------------	
+		
+		// Counter-Flow Heat Exchanger
+		if (parent.parent.hasInterface("NodalCounterHx")) {
+			hnode_1[linkIndex] = Fl_O1.ht;
+			Pnode_1[linkIndex] = Fl_O1.Pt;
+			Tnode_1[linkIndex] = Fl_O1.Tt;
+			
+			hnode_2[linkIndex-1] = Fl_O2.ht;
+			Pnode_2[linkIndex-1] = Fl_O2.Pt;
+			Tnode_2[linkIndex-1] = Fl_O2.Tt;
+		}
+		
+		// Cross-Flow Heat Exchanger
+		if (parent.parent.hasInterface("NodalCrossHx")) {
+		}
+	}
+	//cout << channelIndex << "_" << linkIndex << "\t" <<
+	//Fl_I1.Tt << "\t" << Fl_I2.Tt << "\t" << Q << "\t" << k1_des <<"\t"<<mu1_des<<"\t"<< Pr1_des<<"\n\t" << 
+	//Fl_O1.Tt << "\t" << Fl_O2.Tt << "\t\t" << k2_des <<"\t"<<mu2_des<<"\t"<< Pr2_des<< endl;
+	//Fl_I1.Tt << "\t" << Fl_I2.Tt << "\t" << Q << "\t" <<MTD<< "\t" << hA1 <<"\n\t" << 
+	//Fl_O1.Tt << "\t" << Fl_O2.Tt << "\t\t"  << "\t" << hA2 << endl;
+  }
+} // end element
+
+#endif	

@@ -1,0 +1,1104 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __CounterHxSwRI_OD_update__
+#define __CounterHxSwRI_OD_update__
+
+#include <InterpIncludes.ncp>
+
+class CounterHxSwRI_OD_update extends Element {
+
+  //------------------------------------------------------------
+  // ******* DOCUMENTATION *******
+  //------------------------------------------------------------
+
+  title = "";
+
+  description = isA() + " models thermal energy transfer between two parallel streams using either
+  an effectiveness or heat flow.  Pressure losses may be applied to each stream.";
+
+
+
+  usageNotes = isA() +
+  "
+
+  - Energy exchanged between the two streams is defined by either effectiveness
+  (effect) or total heat flow (Q) as determined by switchQcalc.  These values
+  may be directly input or determined by a subelement plugged into the S_Q
+  socket.
+
+  - Stream pressure drops may be input through sockets, S_dPqP1 and S_dPqP2 or if
+  sockets are empty directly through dPqP1 and dPqP2.
+
+  - Heat exchanger may be turned off by setting either effect or Q to zero.
+
+  - Steady-state operating conditions only.  Transient thermal transfer and
+  storage in structure is not modeled.
+
+  - The calculations are based on 'Compact Heat Exchangers. Third Edition' by
+  W. M. Kays and A. L. London, The National Press, 1984.
+  
+  - The calculateUA routine performs off design calculations using the Conductance ratio method.  
+  Documentation can be found from 'A New Method for Modelling Off-design Performance of sCO2 Heat Exchangers Without Specifying Detailed Geometry' by Hoopes, et al.  
+  ";
+
+  //------------------------------------------------------------
+  // ******* SETUP VARIABLES********
+  //------------------------------------------------------------
+
+  int checkPinch = 1;
+
+  // Real variables
+  real cap1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_R;
+    description = "Capacity of flow stream 1 (W*Cp)";
+  }
+  real cap2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_R;
+    description = "Capacity of flow stream 2 (W*Cp)";
+  }
+  real capMin {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC_R;
+    description = "Minimum of the two streams capacities";
+  }
+  real dPqP_dmd {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Normalized pressure loss (used to temporarily store values returned from the pressure loss sockets)";
+  }
+  real dPqP1 {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Pressure loss in stream 1";
+  }
+  real dPqP2 {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Pressure loss in stream2";
+  }
+  real effect_Cp {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Heat transfer effectiveness based on cp*dT";
+  }
+  real effect_des {
+    value = 0.95;  IOstatus = INPUT;  units = NONE;
+    description = "Design Heat transfer effectiveness";
+  }
+  real effect_base {
+    value = 0.95;  IOstatus = INPUT;  units = NONE;
+    description = "Design Heat transfer effectiveness";
+  }
+
+  real Q {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Heat flow from one side to another (positive when energy flows from stream 1 to stream 2";
+  }
+  real Q_des {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Input value of Q";
+  }
+  real Q_base {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Input value of Q";
+  }
+  real Q_dmd {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Demand vale of Q from customer socket";
+  }
+
+  // Enthalpy based effectiveness
+  real effect_h{
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Heat transfer effectiveness based on dh";
+  }
+  real Qmax1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "";
+  }
+  real Qmax2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "";
+  }
+  real Qmin_h {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "";
+  }
+
+  
+
+  // Approach temperatures
+  real approach_hotOut{
+    value = 0;  IOstatus = OUTPUT;  units = "dR";
+    description = "Approach temperature from Hot Outlet to Cold Inlet";
+  }
+
+  real approach_hotIn{
+    value = 0;  IOstatus = OUTPUT;  units = "dR";
+    description = "Approach temperature from Hot Inlet to Cold Outlet";
+  }
+
+  real approach_min{
+    value = 0;  IOstatus = OUTPUT;  units = "dR";
+    description = "Minimum approach temperature";
+  }
+
+  real approach_des{
+    value = 0;  IOstatus = INPUT;  units = "dR";
+    description = "Design approach temperature";
+  }
+
+  real minDt{
+    value = 1.0;  IOstatus = INPUT;  units = "dR";
+    description = "Minimum approach temperature";
+  }
+
+  
+  // Design Parameters   
+  real x1 {
+    value = 0.8;  IOstatus = INPUT;  units = NONE;
+    description = "Reynolds number exponent for Nusselt number correlation for stream 1 (Dittus-Boelter: 0.8)";
+  }
+  real y1 {
+    value = 0.3;  IOstatus = INPUT;  units = NONE;
+    description = "Prandtl  number exponent for Nusselt number correlation for stream 2 (Cold side: 0.4, Hot side 0.3)";
+  }
+  real x2 {
+    value = 0.8;  IOstatus = INPUT;  units = NONE;
+    description = "Reynolds number exponent for Nusselt number correlation for stream 2 (Dittus-Boelter: 0.8)"; 
+  }
+  real y2 {
+    value = 0.4;  IOstatus = INPUT;  units = NONE;
+    description = "Prandtl  number exponent for Nusselt number correlation for stream 2 (Cold side: 0.4, Hot side 0.3)";
+  }
+  real Qsign {
+    value = 1; IOstatus = OUTPUT; units = NONE;
+    description = "Adjusts sign for Q depending on which streams are hot and cold";
+  }
+  real hAratio {
+    value = 1;  IOstatus = INPUT;  units = NONE;
+    description = "Overall heat transfer conductance ratio";
+  }
+  real W1_des {
+    value = 1;  IOstatus = OUTPUT;   units = LBM_PER_SEC;
+    description = "Design mass flow rate for stream 1";
+  }
+  real W2_des {
+    value = 1;  IOstatus = OUTPUT;   units = LBM_PER_SEC;
+    description = "Design mass flow rate for stream 2";
+  } 
+  int nNodes {
+    value = 50;  IOstatus = INPUT;   units = NONE;
+    description = "Number of nodes to discretize heat exchanger";
+  } 
+  real1D hnode_1 {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_LBM;
+    description = "Array holding each node's total enthalpy for stream 1";
+  }
+  real1D hnode_2 {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_LBM;
+    description = "Array holding each node's total enthalpy for stream 2"; 
+  }
+  real1D Tnode_1 {
+    value = {}; IOstatus = OUTPUT; units = RANKINE;
+    description = "Array holding each node's total temperature for stream 1";   
+  }
+  real1D Tnode_2 {
+    value = {}; IOstatus = OUTPUT; units = RANKINE;
+    description = "Array holding each node's total temperature for stream 2";   
+  }
+  real1D Pnode_1 {
+    value = {}; IOstatus = OUTPUT; units = PSIA;
+    description = "Array holding each node's total pressure for stream 1";    
+  }
+  real1D Pnode_2 {
+    value = {}; IOstatus = OUTPUT; units = PSIA;
+    description = "Array holding each node's total pressure for stream 2";    
+  } 
+  real1D UAcell_des { 
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Array holding each cells UA term";   
+  }  
+  real1D MTDcell_des { 
+    value = {}; IOstatus = OUTPUT; units = RANKINE;
+    description = "Array holding each cells MTD term";    
+  }   
+  real1D qcell { 
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC;
+    description = "Array holding each cells heat transfered";   
+  }   
+  real1D k1_des {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_FT_R;
+    description = "Average design thermal conductivity for stream 1";
+  }
+  real1D k2_des {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_FT_R;
+    description = "Average design thermal conductivity for stream 2";
+  }
+  real1D mu1_des {
+    value = {}; IOstatus = OUTPUT; units = LBM_PER_FT_SEC;
+    description = "Average design viscosity for stream 1";
+  }
+  real1D mu2_des {
+    value = {}; IOstatus = OUTPUT; units = LBM_PER_FT_SEC;
+    description = "Average design viscosity for stream 2";
+  }
+  real1D Pr1_des {
+    value = {}; IOstatus = OUTPUT; units = NONE;
+    description = "Average design Prandtl number for stream 1";
+  }
+  real1D Pr2_des {
+    value = {}; IOstatus = OUTPUT; units = NONE;
+    description = "Average design Prandtl number for stream 2";
+  }
+  real1D rho1_des {
+    value = {}; IOstatus = OUTPUT; units = LBM_PER_FT3;
+    description = "Average design density for stream 1";
+  }
+  real1D rho2_des {
+    value = {}; IOstatus = OUTPUT; units = LBM_PER_FT3;
+    description = "Average design density for stream 2";
+  }
+  real1D hA1_des {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Design overall heat transfer coefficient for stream 1";
+  }
+  real1D hA2_des {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Design overall heat transfer coefficient for stream 2";
+  }
+  real1D UAcell {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Overall heat transfer coefficient";
+  }
+  real1D hA1 {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Overall heat transfer coefficient for stream 1";
+  }
+  real1D hA2 {
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_R;
+    description = "Overall heat transfer coefficient for stream 2";
+  }  
+  real1D dP1cell_des { 
+    value = {}; IOstatus = OUTPUT; units = PSIA;
+    description = "Design delta P across each cell for stream 1"; 
+  } 
+  real1D dP1cell { 
+    value = {}; IOstatus = OUTPUT; units = PSIA;
+    description = "Off Design delta P across each cell for stream 1"; 
+  } 
+  real1D dP2cell_des { 
+  value = {}; IOstatus = OUTPUT; units = PSIA;
+  description = "Design delta P across each cell for stream 2"; 
+  } 
+  real1D dP2cell { 
+  value = {}; IOstatus = OUTPUT; units = PSIA;
+  description = "Off Design delta P across each cell for stream 2"; 
+  }
+  
+  real LMTD {
+    value = {};  IOstatus = OUTPUT;   units = RANKINE;
+    description = "Log-mean temperature difference";
+  } 
+   real NTU {
+    value = {};  IOstatus = OUTPUT;   units = NONE;
+    description = "Number of Transfer Units";
+  } 
+real UA {
+	value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_FT2_R;
+	description = "Heat transfer coefficient time the surface area";
+  }
+
+  // Cold Outlet Configuration
+  real Fl_O2_Tt { 
+    value = 1; IOstatus = OUTPUT; units = RANKINE;
+    description = "Initial Guess for Cold Outlet Stream Temp";
+  }  
+  
+  real Fl_O2_Pt { 
+	value = 1; IOstatus = OUTPUT; units = PSIA; 
+	description = "Inital Guess for Cold Outlet Stream Pressure"; 
+  }
+  
+  real Fl_I2_Tt { 
+    value = 1; IOstatus = OUTPUT; units = RANKINE; 
+    description = "Cold inlet temperature calculated"; 
+  } 
+  
+  real Fl_I2_Pt { 
+	value = 1; IOstatus = OUTPUT; units = PSIA; 
+	description = "Cold inlet pressure calculated";
+  }	
+  
+  
+  int i; 
+
+  
+
+  // Calculaiton variables
+  string Fl_Ihot, Fl_Ohot, Fl_Icold, Fl_Ocold, capHot, capCold, hotSide, coldSide;
+  real hotSign = 1.0;
+
+  // Option variables
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN }
+    description = "Design/Offdesign switch";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  Option switchQ {
+    allowedValues = { "EFFECT", "Q_des", "APPROACH", "Q_CALCULATE", "Q_CUSTOM", "OFF" }
+    description = "Determines if the heat transfer rate is input or calculated from an effectiveness";
+    rewritableValues = FALSE;
+  }
+
+  Option switchEffectCalc {
+    allowedValues = { "h", "Cp" }
+    description = "Determines which effectiveness definition to use, Cp or Enthalpy change";
+    rewritableValues = FALSE;
+  }
+
+  Option switchApproachCalc {
+    allowedValues = { "hotOut", "hotIn" }
+    description = "Determines if approach is calculated at hot stream inlet or outlet ";
+    rewritableValues = FALSE;
+  }
+
+
+  Option switchQcalc{
+    //allowedValues = { "INPUT", "OFF", "CALCULATE", "CUSTOM", "APPROACH" }
+    allowedValues = { "NOT_USED" }
+    description = "Determines if the heat transfer rate is input or calculated from an effectiveness";
+    rewritableValues = FALSE;
+  }
+
+
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+
+  // FLUID PORTS
+
+  FluidInputPort Fl_I1 {
+    description = "Fluid input port 1" ;
+  }
+  FluidInputPort Fl_I2 {
+    description = "Fluid input port 2" ;
+  }
+  FluidOutputPort Fl_O1 {
+    description = "Fluid output port 1" ;
+  }
+  FluidOutputPort Fl_O2 {
+    description = "Fluid output port 2" ;
+  }
+
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS
+  FlowStation Fl_dP {
+    description = "Temporary FlowStation used to pass data to the pressure loss Subelements.  Used because the dPnorm subelements expect to reference the incoming conditions in Fl_I.";
+  } 
+  FlowStation Fl_temp1 {
+    description = "Temporary FlowStation used for intermediate calculations for stream 1.";
+  }
+  FlowStation Fl_temp2 {
+    description = "Temporary FlowStation used for intermediate calculations for stream 2.";
+  }  
+
+  
+
+
+
+  // SOCKETS
+
+  Socket S_dPqP1 {
+    description = "Stream 1 pressure loss calculation";
+    allowedValues = { "dPqP_dmd" }
+    socketType = ADIAB_DPNORM;
+  }
+
+  Socket S_dPqP2 {
+    description = "Stream 2 pressure loss calculation";
+    allowedValues = { "dPqP_dmd" }
+    socketType = ADIAB_DPNORM ;
+  }
+
+  Socket S_Q {
+    description = "Heat flow or effectiveness from stream 1 to stream 2";
+    allowedValues = { "Q", "effect", "switchQcalc" }
+    socketType = HX_QE;
+  }
+
+  Socket S_customQ {
+    description = "Customer socket for Q value";
+    allowedValues = { "Q_dmd", "effect", "switchQcalc" }
+  }
+
+  //------------------------------------------------------------
+  // ******* SOLVER SETUP *******
+  //------------------------------------------------------------
+
+  SecantSolver Qsolver {
+    description = "Adjust Q for min approach temp";
+    maxDx = 10;
+    // tolerance = 1.E-4;  // tolPs
+    tolerance = 0.001;
+    perturbSize = 0.1;
+    maxIters = 200;
+  } 
+
+  SecantSolver Tsolver {
+    description = "Adjust Q for min approach temp";
+    maxDx = 10;
+    // tolerance = 1.E-4;  // tolPs
+    tolerance = 0.0001;
+    perturbSize = 0.01;
+    maxIters = 500;
+  }  
+  
+  SecantSolver Psolver { 
+	description = "Adjust Q for min approach temp";
+    maxDx = 10;
+    // tolerance = 1.E-4;  // tolPs
+    tolerance = 0.0001;
+    perturbSize = 0.01;
+    maxIters = 500;
+  }
+  
+
+  //------------------------------------------------------------
+  // ****** ADD SOLVER INDEPENDENTS & DEPENDENT ******
+  //------------------------------------------------------------
+
+  // Independent ind_Fl_O2_Tt{
+  //   varName = "Fl_O2_Tt";
+  //   autoSetup = FALSE;
+  // }
+
+  // Dependent dep_Fl_I2_Tt{
+  //   eq_lhs = "Fl_I2_Tt";
+  //   eq_rhs = "Fl_I2.Tt";
+  //   // eq_Ref = "1";
+  //   autoSetup = FALSE;
+  // }
+
+
+
+  //------------------------------------------------------------
+  // ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) { 
+    if( name =="switchDes" ) {
+      if( switchDes == "DESIGN" ) {
+        // ind_Fl_O2_Tt.autoSetup = FALSE; 
+        // dep_Fl_I2_Tt.autoSetup = FALSE; 
+      } 
+      else if( switchDes == "OFFDESIGN" ) {
+        // ind_Fl_O2_Tt.autoSetup = TRUE; 
+        // dep_Fl_I2_Tt.autoSetup = TRUE; 
+      }
+    }       
+
+    // if ( name == "switchQcalc" ) {
+    //   if ( switchQcalc == "Q_des" ) {
+    //     Q_des.IOstatus = INPUT;
+    //     // effect.IOstatus = OUTPUT;
+    //   }
+    //   else if ( switchQcalc == "EFFECT" ) {
+    //     //Q.IOstatus = OUTPUT;
+    //     effect_des.IOstatus = INPUT;
+    //   }
+    // }
+
+  }
+
+
+
+  //------------------------------------------------------------------
+  // Calculations
+  //------------------------------------------------------------------
+
+  void calcEffectCp(real eff) {
+    //------------------------------------------------------------------------
+    // Determine cold side temp (TO1) from effectiveness equation
+    //------------------------------------------------------------------------
+    real ToutCold;
+    ToutCold = Fl_Icold->Tt + eff *( Fl_Ihot->Tt - Fl_Icold->Tt )*( capMin / capCold->value );
+
+
+    //------------------------------------------------------------------------
+    // Set the cold side conditions based on the temp and pressure loss
+    //------------------------------------------------------------------------
+    Fl_Ocold->setTotalTP( ToutCold, Fl_Ocold->Pt * ( 1 - ("dPqP"+coldSide)->value ));
+
+    //------------------------------------------------------------------------
+    // Set the hot side conditions based on an energy balance and
+    // pressure loss
+    //------------------------------------------------------------------------
+    Fl_Ohot->setTotal_hP( Fl_Ihot->ht +( Fl_Icold->ht - Fl_Ocold->ht )* Fl_Icold->W /
+      Fl_Ihot->W, Fl_Ohot->Pt * ( 1 - ("dPqP"+hotSide)->value ));
+
+    return ( Fl_Icold->ht - Fl_Ocold->ht )* Fl_Icold->W;
+  }
+
+  void calcEffectH(real eff) {
+    // Note: Qmin_h is calculated to account for minimum approach temperature, minDT
+    // 100% * Qmin_h results in a minimum approach of minDt
+    return eff*Qmin_h;
+  }
+
+  void calcQ(real q) {
+    //------------------------------------------------------------------
+    // Set the exit conditions based on prescribed Q
+    //------------------------------------------------------------------
+    Fl_O1.setTotal_hP(( Fl_I1.ht - q / Fl_I1.W ), Fl_O1.Pt * ( 1 - dPqP1 ));
+    Fl_O2.setTotal_hP(( Fl_I2.ht + q / Fl_I2.W ), Fl_O2.Pt * ( 1 - dPqP2 ));
+  }
+
+  void calcApproachQ(string FsName, string FsTempName, real Tout, real dPqP) {
+
+    real Q;
+    real dT;
+
+    FsTempName->copyFlow(FsName);
+    FsTempName->setTotalTP(Tout,FsName->Pt*(1.-dPqP));
+    Q = abs(FsTempName->ht - FsName->ht)*FsName->W;
+    return Q;
+  }
+
+
+  void preexecute() {
+    effect_base = effect_des;
+  }
+
+  // void prepass() {
+  //   if( switchDes == "OFFDESIGN" ) {
+  //     Fl_O2_Tt = Fl_I1.Tt;
+  //   }
+  // }
+
+
+  real Tt1, Tt2;
+  real dT;
+  real dTlog[];
+  Tt1.units = "R";
+  Tt2.units = "R";
+  dT.units = "dR";
+
+  FlowStation FsTemp1, FsTemp2;
+
+  real approachMin() {
+    // cout << "approachMin called" << endl;
+    //int nNodes = 10;
+
+    real Pt1, Pt2;
+    real ht1, ht2;
+    real dh1, dh2;
+
+    real Tt1Log[], Tt2Log[];
+    real ht1Log[], ht2Log[];
+    
+
+    // Start at FL_I1 and work to exit
+    FsTemp1.copyFlow("Fl_I1");
+    ht1 = FsTemp1.ht;
+    Pt1 = FsTemp1.Pt;
+    // if (Fl_I1.Tt < Fl_O1.Tt) {
+    //   dh1 = Q/FsTemp1.W;
+    // } else {
+    //   dh1 = -Q/FsTemp1.W;
+    // }
+    dh1 = -Q/FsTemp1.W;
+    // cout << "Note 1" << -Q/FsTemp1.W << " " <<  Q/abs(Q) << endl;
+
+    
+    FsTemp2.copyFlow("Fl_O2");
+    ht2 = FsTemp2.ht;
+    Pt2 = FsTemp2.Pt;
+    // if (Fl_I2.Tt > Fl_O2.Tt) {
+    //   // Starting from outlet
+    //   dh2 = Q/FsTemp2.W;
+    // } else {
+    //   dh2 = -Q/FsTemp2.W;
+    // }
+    dh2 = -Q/FsTemp2.W;
+
+    // cout << "Transfer: " << Q << " " << dh1 << "  "<< dh2 <<  endl;
+    // cout << endl;
+
+    int n;
+    dTlog = {};
+    for (n=0;n<=nNodes;n++) {
+
+      FsTemp1.setTotal_hP(ht1+n*dh1/nNodes, Pt1);
+      FsTemp2.setTotal_hP(ht2+n*dh2/nNodes, Pt2);
+
+      Tt1 = FsTemp1.Tt;
+      Tt2 = FsTemp2.Tt;
+      dT = FsTemp1.Tt - FsTemp2.Tt;
+      dTlog.append(dT * Q/abs(Q));
+
+      // convertUnits("FsTemp1.Tt","C") << " " << convertUnits("FsTemp2.Tt","C") 
+      // cout << n << " " << FsTemp1.Tt << " " << FsTemp2.Tt << " " << FsTemp1.Tt - FsTemp2.Tt << endl;
+      // cout << n << "\t" << Tt1 << "\t" << Tt2 << "\t" << dT << " [R] \t" << dT/1.8 << " [C] " << endl;
+      // cout << n << "\t" << convertUnits("Tt1","K") << "\t" << convertUnits("Tt2","K") << "\t" << convertUnits("dT","dC") << endl;
+
+    }
+
+    // cout << endl;
+    // cout << "Minimum Approach " << dTlog.minArray() << " [dR] " << dTlog.minArray()/1.8 << " [dC]" << endl;
+
+    // real Qmax1 { units = BTU_PER_SEC; }
+    // FsTemp1.setTotalTP(hxName->Fl_I2.Tt,hxName->Fl_I1.Pt);
+    // Qmax1 = hxName->Fl_I1.W * (FsTemp1.ht - hxName->Fl_I1.ht );
+    // cout << "Qmax1 " << Qmax1 << " " << Qmax1.units << " " << Qmax1*getUnitsFactor(Qmax1.units,"kW") << " kW " << endl;
+
+
+    // real Qmax2 { units = BTU_PER_SEC; }
+    // FsTemp2.setTotalTP(hxName->Fl_I1.Tt,hxName->Fl_I2.Pt);
+    // Qmax2 = hxName->Fl_I2.W * (FsTemp2.ht - hxName->Fl_I2.ht );
+    // cout << "Qmax2 " <<  Qmax2 << " " << Qmax2.units << " " << Qmax2*getUnitsFactor(Qmax2.units,"kW") << " kW " << endl;
+
+    return dTlog.minArray();
+
+  } 
+
+
+  
+  void calculate() {
+
+    //------------------------------------------------------------------
+    // Copy entrance conditions to exit
+    //------------------------------------------------------------------
+    Fl_O1.copyFlow( "Fl_I1" );
+    Fl_O2.copyFlow( "Fl_I2" );
+
+    //------------------------------------------------------------------
+    // Determine hot and cold streams
+    //------------------------------------------------------------------
+    if ( Fl_I2.Tt > Fl_I1.Tt ) {
+      hotSign = -1.;
+      hotSide = "2";
+      Fl_Ihot = Fl_I2.getName();
+      Fl_Ohot = Fl_O2.getName();
+      capHot = cap2.getName();
+
+      coldSide = "1";
+      Fl_Icold = Fl_I1.getName();
+      Fl_Ocold = Fl_O1.getName();
+      capCold = cap1.getName();
+    } else {
+      hotSign = 1.;
+      hotSide = "1";
+      Fl_Ihot = Fl_I1.getName();
+      Fl_Ohot = Fl_O1.getName();
+      capHot = cap1.getName();
+
+      coldSide = "2";
+      Fl_Icold = Fl_I2.getName();
+      Fl_Ocold = Fl_O2.getName();
+      capCold = cap2.getName();
+    }
+
+    //------------------------------------------------------------------
+    // Calculate the fluid capacity rates (flow x Cp)
+    //------------------------------------------------------------------
+    cap1 = Fl_I1.W * Fl_I1.Cpt;
+    cap2 = Fl_I2.W * Fl_I2.Cpt;
+    capMin = min(cap1, cap2);
+
+    if (switchDes == "DESIGN") {
+
+      //------------------------------------------------------------------
+      // Enthalpy based effectiveness
+      // Assume 0 R approach temp for max heat capacity
+      //------------------------------------------------------------------
+      // FlowStation FsTemp;
+
+      // FsTemp.copyFlow("Fl_I1");
+      // FsTemp.setTotalTP(Fl_I2.Tt,Fl_I1.Pt);
+      // Qmax1 = abs(FsTemp.ht - Fl_I1.ht)*Fl_I1.W;
+      Qmax1 = calcApproachQ("Fl_I1","FsTemp1",Fl_I2.Tt,dPqP1);
+
+      // Cold Stream
+      // FsTemp.copyFlow("Fl_I2");
+      // FsTemp.setTotalTP(Fl_I1.Tt,Fl_I2.Pt);
+      // Qmax2 = abs(FsTemp.ht - Fl_I2.ht)*Fl_I2.W;
+      Qmax2 = calcApproachQ("Fl_I2","FsTemp2",Fl_I1.Tt,dPqP2);
+
+      // ("Qmax"+hotSide)->value = calcApproachQ(Fl_Ihot,Fl_Icold->Tt+minDt,("dPqP"+hotSide)->value);
+      // ("Qmax"+coldSide)->value = calcApproachQ(Fl_Icold,Fl_Ihot->Tt-minDt,("dPqP"+coldSide)->value);
+      // ("Qmax"+hotSide)->value  = calcApproachQ(Fl_Ihot,  "FsTemp"+hotSide,  Fl_Icold->Tt, ("dPqP"+hotSide)->value);
+      // ("Qmax"+coldSide)->value = calcApproachQ(Fl_Icold, "FsTemp"+coldSide, Fl_Ihot->Tt,  ("dPqP"+coldSide)->value);
+
+      Qmin_h = min(Qmax1, Qmax2);
+
+
+      //------------------------------------------------------------------
+      // Calculate the pressure loss on both sides of the HX
+      //------------------------------------------------------------------
+      if( !S_dPqP1.isEmpty() ) {
+        Fl_dP.copyFlow( "Fl_I1" );
+        S_dPqP1.execute();
+        dPqP1 = dPqP_dmd;
+      }
+      if( !S_dPqP2.isEmpty() ) {
+        Fl_dP.copyFlow( "Fl_I2" );
+        S_dPqP2.execute();
+        dPqP2 = dPqP_dmd;
+      }
+
+
+      //------------------------------------------------------------------
+      // Calculate the Q or the effectiveness
+      //------------------------------------------------------------------
+      if ( switchQ == "EFFECT" ) {
+        if ( switchEffectCalc == "Cp" ) {
+          Q = calcEffectCp(effect_base);
+        } else {
+          Q = hotSign*calcEffectH(effect_base);
+        }
+      } else if ( switchQ == "Q_des" ){
+        Q = Q_des;
+      } else if ( switchQ == "APPROACH" ) {
+        if ( switchApproachCalc == "hotOut") {
+          Q = hotSign*calcApproachQ(Fl_Ihot,"FsTemp"+hotSide,Fl_Icold->Tt+approach_des,("dPqP"+hotSide)->value);
+        }
+        else if ( switchApproachCalc == "hotIn") {
+          Q = hotSign*calcApproachQ(Fl_Icold,"FsTemp"+coldSide,Fl_Ihot->Tt-approach_des,("dPqP"+coldSide)->value);
+        }
+      } else if ( switchQ == "Q_CALCULATE" ){
+        if( !S_Q.isEmpty() ) {
+          S_Q.execute();
+        }
+      } else if ( switchQ == "Q_CUSTOM" ){
+        if( !S_customQ.isEmpty() ) {
+          S_customQ.execute();
+        }
+        Q = Q_dmd;
+      } else if ( switchQ == "OFF" ){
+        Q = 0;
+        effect_base = 0;
+      }
+
+      //------------------------------------------------------------------
+      // Compute outlet streams based on Q
+      //------------------------------------------------------------------
+      // Check requested Q against available heat capacity
+      if ( abs(Q) > Qmin_h ) {
+        Q = Qmin_h * Q/abs(Q);
+        cout << "WARNING: " << parent.getPathName() << ", Crossover detected, Adjusting to minimum approach temperature (minDt), " << minDt << endl;
+      }
+      calcQ(Q);
+
+      if (checkPinch) {
+        approach_min = approachMin();
+        real Qold = Q;
+        if ( abs(approach_min) < minDt ) {
+          cout << "WARNING: " << parent.getPathName() << ", approach_min < minDt detected, Adjusting to minimum approach temperature (minDt), " << approach_min << " < " << minDt << endl; 
+          // Q *=0.95;
+          Qsolver.initialize(Q);
+          do {
+            calcQ(Q);
+            approach_min = approachMin();
+            Qold = Q;
+            Q = Qsolver.iterate( (approach_min - minDt ) );
+            // cout << "New Q = " << Q << " delta = " << Q - Qold << endl;
+          } while ( ! ( Qsolver.isConverged() || Qsolver.errorFound() ) );
+        }
+      }
+      Fl_O2_Tt = Fl_O2.Tt;
+    }
+
+    calculateUA(Q);
+
+    //------------------------------------------------------------------
+    // Calculate approach temperatures
+    //------------------------------------------------------------------
+    approach_hotOut = Fl_Ohot->Tt - Fl_Icold->Tt;
+    approach_hotIn  = Fl_Ihot->Tt - Fl_Ocold->Tt;
+    approach_min = min(approach_hotOut,approach_hotIn);
+
+    //------------------------------------------------------------------
+    // Calculate the Q
+    //------------------------------------------------------------------
+    Q = ( Fl_O2.ht - Fl_I2.ht )* Fl_I2.W;
+
+    //------------------------------------------------------------------
+    // Calculate Effectiveness
+    //------------------------------------------------------------------
+    effect_Cp = ( Fl_Ocold->Tt - Fl_Icold->Tt )/( Fl_Ihot->Tt - Fl_Icold->Tt )/( capMin / capCold->value );
+    
+    Qmax1 = calcApproachQ("Fl_I1","FsTemp1",Fl_I2.Tt,dPqP1); 
+    Qmax2 = calcApproachQ("Fl_I2","FsTemp2",Fl_I1.Tt,dPqP2);       
+    effect_h = abs(Q) / min(Qmax1,Qmax2); 
+	
+	
+	
+	LMTD = (abs(Fl_O2.Tt-Fl_O1.Tt)-abs(Fl_I2.Tt-Fl_I1.Tt))/(log(abs(Fl_O2.Tt-Fl_O1.Tt))-log(abs(Fl_I2.Tt-Fl_I1.Tt)));
+	UA = Q/LMTD;
+	NTU = UA/capMin;
+
+  } // calculate() 
+  
+  
+  //------------------------------------------------------------------
+  // calculateUA uses the conductance ratio method to include heat exchanger off design operation
+  //------------------------------------------------------------------ 
+  
+  void calculateUA(real q) {  
+
+    if (switchDes == "DESIGN") {
+
+      //------------------------------------------------------------------
+      // Size arrays according to number of nodes
+      //------------------------------------------------------------------
+      hnode_1.resize(nNodes);
+      Pnode_1.resize(nNodes);
+      Tnode_1.resize(nNodes);
+      hnode_2.resize(nNodes);
+      Pnode_2.resize(nNodes);
+      Tnode_2.resize(nNodes); 
+      
+      MTDcell_des.resize(nNodes - 1); 
+      UAcell_des.resize(nNodes - 1);  
+      UAcell.resize(nNodes - 1); 
+      qcell.resize(nNodes - 1); 
+      dP1cell_des.resize(nNodes - 1);
+      dP1cell.resize(nNodes - 1); 
+	  dP2cell_des.resize(nNodes - 1);
+      dP2cell.resize(nNodes - 1); 
+      
+      
+      hA1_des.resize(nNodes - 1); 
+      hA2_des.resize(nNodes - 1); 
+      hA1.resize(nNodes - 1); 
+      hA2.resize(nNodes - 1); 
+      
+      k1_des.resize(nNodes); 
+      k2_des.resize(nNodes); 
+      mu1_des.resize(nNodes); 
+      mu2_des.resize(nNodes); 
+      Pr1_des.resize(nNodes); 
+      Pr2_des.resize(nNodes); 
+      rho1_des.resize(nNodes); 
+      rho2_des.resize(nNodes);  
+      
+      //------------------------------------------------------------------
+      // Assign the correct compositions to temporary flow stations
+      //------------------------------------------------------------------
+      Fl_temp1.comp = Fl_I1.comp;
+      Fl_temp2.comp = Fl_I2.comp; 
+    
+      //------------------------------------------------------------------
+      // Determine hot and cold side to use appropriate heat transfer sign
+      //------------------------------------------------------------------      
+      if (Fl_I1.Tt > Fl_I2.Tt) {
+        x1 = 0.8;
+        y1 = 0.3;
+        x2 = 0.8;
+        y2 = 0.4;
+      } else {
+        x1 = 0.8;
+        y1 = 0.4;
+        x2 = 0.8;
+        y2 = 0.3;
+      } // if()
+      
+      //------------------------------------------------------------------
+      // Save design mass flow rate for each stream
+      //------------------------------------------------------------------      
+      W1_des = Fl_I1.W;
+      W2_des = Fl_I2.W;
+      
+      //------------------------------------------------------------------
+      // Define Properties for Stream 1 and 2 Inlets  
+      //------------------------------------------------------------------
+      hnode_1[0] = Fl_I1.ht;
+      Pnode_1[0] = Fl_I1.Pt;
+      Tnode_1[0] = Fl_I1.Tt; 
+      
+      k1_des[0] = Fl_I1.kt; 
+      mu1_des[0] = Fl_I1.mut; 
+      Pr1_des[0] = Fl_I1.Prt; 
+      rho1_des[0] = Fl_I1.rhot; 
+      
+      hnode_2[nNodes-1] = Fl_I2.ht;
+      Pnode_2[nNodes-1] = Fl_I2.Pt;
+      Tnode_2[nNodes-1] = Fl_I2.Tt;  
+      
+      k2_des[nNodes-1] = Fl_I2.kt; 
+      mu2_des[nNodes-1] = Fl_I2.mut; 
+      Pr2_des[nNodes-1] = Fl_I2.Prt; 
+      rho2_des[nNodes-1] = Fl_I2.rhot;
+      
+      
+      for (i=1; i<nNodes; i++) {
+        //-------------------------------------------------------------------------
+        // Stream 1 properties
+        //-------------------------------------------------------------------------
+        // hnode_1[i] = hnode_1[i-1] - q*hotSign/ ((nNodes - 1) * Fl_I1.W);
+        hnode_1[i] = hnode_1[i-1] - q/ ((nNodes - 1) * Fl_I1.W);
+        Pnode_1[i] = Pnode_1[i-1] - (Fl_I1.Pt - Fl_O1.Pt) / (nNodes - 1);
+        Fl_temp1.setTotal_hP(hnode_1[i],Pnode_1[i]);
+        Tnode_1[i] = Fl_temp1.Tt; 
+
+        k1_des[i] = Fl_temp1.kt; 
+        mu1_des[i] = Fl_temp1.mut; 
+        Pr1_des[i] = Fl_temp1.Prt; 
+        rho1_des[i] = Fl_temp1.rhot;
+
+        //-------------------------------------------------------------------------
+        // Stream 2 properties
+        //-------------------------------------------------------------------------     
+        // hnode_2[nNodes - (i+1)] = hnode_2[nNodes - (i)] + q*hotSign / ((nNodes - 1) * Fl_I2.W); 
+        hnode_2[nNodes - (i+1)] = hnode_2[nNodes - (i)] + q / ((nNodes - 1) * Fl_I2.W); 
+        Pnode_2[nNodes - (i+1)] = Pnode_2[nNodes - (i)] - (Fl_I2.Pt - Fl_O2.Pt) / (nNodes - 1);
+        Fl_temp2.setTotal_hP(hnode_2[nNodes - (i+1)],Pnode_2[nNodes - (i+1)]);
+        Tnode_2[nNodes - (i+1)] = Fl_temp2.Tt; 
+
+        k2_des[nNodes-(i+1)] = Fl_temp2.kt; 
+        mu2_des[nNodes-(i+1)] = Fl_temp2.mut; 
+        Pr2_des[nNodes-(i+1)] = Fl_temp2.Prt; 
+        rho2_des[nNodes-(i+1)] = Fl_temp2.rhot;
+      } // for()
+      
+      //------------------------------------------------------------------
+      // Calculate Design Parameters for each Cell
+      //------------------------------------------------------------------
+      for (i=1; i<nNodes; i++) {  
+        // Mean Temperature Difference 
+        MTDcell_des[i-1] = ((Tnode_1[i-1]+Tnode_1[i])/2-(Tnode_2[i-1]+Tnode_2[i])/2);
+        UAcell_des[i-1] = q/(MTDcell_des[i-1]*(nNodes-1));  
+        dP1cell_des[i-1] = Pnode_1[i-1]-Pnode_1[i]; 
+        dP2cell_des[i-1] = Pnode_2[i]-Pnode_2[i-1]; 
+        hA1_des[i-1] = UAcell_des[i-1]*(hAratio+1); 
+        hA2_des[i-1] = hA1_des[i-1]/hAratio;  
+      } // end for()
+	
+    } else if (switchDes == "OFFDESIGN"){ 
+      //------------------------------------------------------------------
+      // Set Boundary Conditions
+      //------------------------------------------------------------------
+      Pnode_1[0] = Fl_I1.Pt;
+      Tnode_1[0] = Fl_I1.Tt; 
+	  
+	  
+      Pnode_2[nNodes-1] = Fl_I2.Pt;
+      Tnode_2[0] = Fl_O2_Tt;
+
+      real C; 
+      real D; 
+
+      Fl_O2_Tt = Fl_I1.Tt - (Fl_I1.Tt - Fl_I2.Tt)*0.1;
+	  Fl_O2_Pt = Fl_I2.Pt*(1-dPqP2);
+      
+	  
+	  Psolver.initialize(Fl_O2_Pt); 
+	  do { 
+		  Tsolver.initialize(Fl_O2_Tt);
+		  do {
+
+			Tnode_2[0] = Fl_O2_Tt; 
+			Pnode_2[0] = Fl_O2_Pt; 
+
+			// For loop to step through each cell and compute off design UA 
+			for (i = 0; i < (nNodes-1); i++) {  
+	  
+			  // Set Flow Stations for each 
+			  Fl_temp1.setTotalTP(Tnode_1[i], Pnode_1[i]);
+			  Fl_temp2.setTotalTP(Tnode_2[i], Pnode_2[i]); 
+	  
+			  //------------------------------------------------------------------------- 
+			  // Scale pressure loss for the operating fluid stream (Stream 1)
+			  //------------------------------------------------------------------------- 
+			  dP1cell[i] = dP1cell_des[i]*((Fl_I1.W)**2/(Fl_temp1.rhot))/((W1_des)**2/(rho1_des[i])); 
+			  dP2cell[i] = dP2cell_des[i]*((Fl_I2.W)**2/(Fl_temp2.rhot))/((W2_des)**2/(rho2_des[i]));
+	  
+			  // Stream 1 Total Pressure Loss
+			  Pnode_1[i+1] = Pnode_1[i]-dP1cell[i]; 
+	  
+			  // Stream 2 Total Pressure   
+			  Pnode_2[i+1] = Pnode_2[i]+dP2cell[i]; 
+			
+	  
+			  //------------------------------------------------------------------------- 
+			  // Scale hA for each stream using nusselt number correlation
+			  //------------------------------------------------------------------------- 
+			  hA1[i] = hA1_des[i] * ( Fl_temp1.kt / k1_des[i])  
+			  * ((Fl_I1.W / Fl_temp1.mut) / (W1_des / mu1_des[i]))**x1
+			  * ( Fl_temp1.Prt / Pr1_des[i])**y1;
+			  hA2[i] = hA2_des[i] * ( Fl_temp2.kt / k2_des[i])  
+			  * ((Fl_I2.W / Fl_temp2.mut) / (W2_des / mu2_des[i]))**x2
+			  * ( Fl_temp2.Prt / Pr2_des[i])**y2;
+	  
+			  // Calculate new UA assuming that conduction is negligible
+			  UAcell[i] = (1/hA1[i] + 1/hA2[i])**(-1);  
+	  
+			  // Define C and D terms 
+			  C = Fl_I1.W*Fl_temp1.Cpt; 
+			  D = Fl_I2.W*Fl_temp2.Cpt;  
+	  
+			  // Solver for Tnode_1[i+1] and Tnode_2[i+1] 
+			  Tnode_1[i+1] = (Tnode_1[i]*(2*C/UAcell[i]-C/D-1)+2*Tnode_2[i])/(1+2*C/UAcell[i]-C/D); 
+			  qcell[i] = (Tnode_1[i+1]+Tnode_1[i]-2*Tnode_2[i])/(2/UAcell[i]-1/D); 
+			  Tnode_2[i+1] = Tnode_2[i]-qcell[i]/D;  
+			  
+			  
+			  //Added by Owen on 20190606
+			  Cp1_cell[i] = F1_temp1.Cp;
+			  Cp2_cell[i] = F1_temp2.Cp;
+			  C1_cell[i] = Cp1_cell[i]*F1_I1.W*Cp;
+			  C2_cell[i] = Cp2_cell[i]*F1_I2.W*Cp;
+			  
+			  Cmin_cell[i] = min(C1_cell[i],C2_cell[i]);
+			  NTU_cell[i] = UAcell[i]/Cmin_cell[i]
+			} //end for()
+			
+			//------------------------------------------------------------------
+			// Set the exit conditions based on prescribed Q
+			//------------------------------------------------------------------
+			Fl_I2_Tt = Tnode_2[nNodes-1]; 
+			Fl_I2_Pt = Pnode_2[nNodes-1]; 
+	  
+			Fl_O2_Tt = Tsolver.iterate( ( Fl_I2_Tt - Fl_I2.Tt ) / Fl_I2.Tt ); 
+		  } while ( ! ( Tsolver.isConverged() || Tsolver.errorFound() ) ); 
+		  //end do()
+		  
+		  Fl_O2_Pt = Psolver.iterate( ( Fl_I2_Pt - Fl_I2.Pt ) / Fl_I2.Pt ); 
+
+      }  while ( ! ( Psolver.isConverged() || Psolver.errorFound() ) );
+	  //end do()
+	  
+	  for i 
+
+      Fl_O1.setTotalTP(Tnode_1[nNodes-1], Pnode_1[nNodes -1]);
+      Fl_O2.setTotalTP(Tnode_2[0], Pnode_2[0]); 
+
+    } // if()
+  } //calculateUA(Q);
+} // Element
+
+#endif

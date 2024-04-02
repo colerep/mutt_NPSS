@@ -1,0 +1,296 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __BLEEDSwRI__
+#define __BLEEDSwRI__
+
+#include <InterpIncludes.ncp>
+
+class BleedSwRI extends Element {
+  
+  //------------------------------------------------------------
+  //     ******* DOCUMENTATION *******
+  //------------------------------------------------------------
+
+  title = "";
+
+  description = "The " + isA() + " element allows the user to extract bleed flows from 
+the main stream, or reintroduce existing bleed flows into the main 
+stream.  The element can also be used to transfer heat to or from a 
+sink.  A heat transfer subelement can be used if desired.";
+
+  usageNotes = isA() +
+  "
+No Provisional Errors or Warnings
+
+- Any number of bleed outflow or inflow ports can be created on a 
+Bleed element.
+
+- Bleed inflows are mixed with the main stream so as to preserve total 
+mass flow and total energy, but no momentum calculations are performed.
+
+- Bleed flows are expressed as a fraction of a reference flow.  The flow 
+to be used as the reference flow is specified by the string variable 
+WrefName.  If this string is left blank, the element inlet flow is used 
+as the reference flow.";
+
+background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+  real Qhx {
+    value = 0;   IOstatus = INPUT;  units = "Btu/sec";
+    description = "Heat transfer to sink (+) or returned to main fluid stream (-). ";
+  }
+
+  real Wref {
+	 value = 0;   IOstatus = OUTPUT;  units = "lbm/sec";
+    description = "Weight flow that bleed fractions are referenced to";
+  }
+
+
+  string WrefName{
+    value = ""; IOstatus = INPUT; units = "none";      
+	 description = "Location of the reference bleed flow (string variable)";
+  }
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary incoming flow.";
+    iDescription = "Primary incoming flow";  
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exiting flow.";
+    iDescription = "Primary exiting flow";
+  }
+
+  FlowStation Fl_tmp {
+    description = "Temporary flow station";
+  }
+    
+
+// FUEL PORTS
+
+// BLEED PORTS
+  
+ string bleedInPortList[];
+ bleedInPortList {
+     value = { };IOstatus = OUTPUT; units = "none";
+     description = "List of bleed in ports (created by user in model)";
+     ptrType = "BleedInPort";
+     internal = TRUE;  // maintained internal to class by postcreate()
+ }
+    
+ string bleedOutPortList[];
+ bleedOutPortList {
+     value = { };IOstatus = OUTPUT; units = "none";
+     description = "List of bleed out ports (created by user in model)";
+     ptrType = "BleedOutPort";
+     internal = TRUE;  // maintained internal to class by postcreate()
+ }
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+
+// FLOW STATIONS
+
+// SOCKETS
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* SOLVER SETUP *******
+//------------------------------------------------------------
+
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENT  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  Socket S_Qhx {
+	allowedValues = { "Qhx" };
+	description = " Heat transfer socket. ";
+	socketType = HEATTRANSFER;
+  }
+
+
+int verify()
+{
+   real value;
+   if ( !WrefName.isNull() ) { Wref = WrefName->value; }
+   else { Wref = Fl_I.W; }
+
+   int i;
+   for(i=0; i<bleedOutPortList.entries(); ++i) {
+     bleedOutPortList[i]->setBleedStation("Fl_I", Wref);
+   }
+   return 1;
+
+}
+
+
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  void calculate() {
+
+  	 	 
+  //-----------------------------------------------------------------------
+  // If the user has input a reference to fuel weight flow then go 
+  // grab that value.  Note this will override any previous values of the
+  // the static exhaust pressure.
+  //-----------------------------------------------------------------------
+
+	 real value;
+	  
+	 if ( !WrefName.isNull() ) {
+		Wref = WrefName->value;
+	 } 
+	 else{
+		Wref = Fl_I.W;
+	 }
+
+    //----------------------------------------------------------
+    // zero out the summations
+    //----------------------------------------------------------
+    real sumWbldOut = 0.;
+    real sumhtWbldOut = 0.;
+	 
+    //----------------------------------------------------------
+    //obtain variables from the incoming flow
+    //----------------------------------------------------------  
+    real Win = Fl_I.W; 
+    real PtIn = Fl_I.Pt;
+    real htIn = Fl_I.ht;
+
+    //-----------------------------------------------------------------
+    // start with the bleed outlet ports
+    // loop through to determine how much floww and energy leaves 
+    //-----------------------------------------------------------------
+    int i;
+    for( i = 0; i < bleedOutPortList.entries(); ++i) {
+	 
+      //----------------------------------------------------------------
+      // execute the bleed station and determine the flow and enthalpy
+      //----------------------------------------------------------------
+      bleedOutPortList[i]->updateBleed(Wref);
+
+      Fl_tmp.copyFlow( bleedOutPortList[i] );
+
+      real WbldOut = Fl_tmp.W;
+      real htBldOut = Fl_tmp.ht;
+	 
+      //-----------------------------------------------------------------
+      // keep a running total of the energy and flow leaving
+      //-----------------------------------------------------------------	 
+      sumWbldOut += WbldOut;
+      sumhtWbldOut += (WbldOut * htBldOut);
+    }
+
+    //--------------------------------------------------------------------
+    // determine the intermediate conditions after the exit bleed flow
+    // has been extracted but before the incoming bleed flows have been
+    // added
+    //-------------------------------------------------------------------- 
+    real Wtemp = Win - sumWbldOut;
+    real htemp;
+    if (Wtemp == 0) {
+      htemp = htIn;
+    }
+    else {
+      htemp = ( Win * htIn - sumhtWbldOut ) / Wtemp;
+    } 
+    //set the midstream conditions
+    Fl_O.copyFlow( "Fl_I" );
+    Fl_O.setTotal_hP( htemp, PtIn );
+    Fl_O.W = Wtemp;
+
+
+    //-----------------------------------------------------------------
+    // next do the bleed input ports 
+    // loop through mixng the flows iin
+    //-----------------------------------------------------------------
+
+    for(i=0; i < bleedInPortList.entries(); ++i) {
+	 
+      //----------------------------------------------------------------
+      // add the bleed port with the outlet flow
+      //----------------------------------------------------------------
+      bleedInPortList[i]->setBleedStation();
+      Fl_O.add( bleedInPortList[i] );
+
+    }
+    //-------------------------------------------------------------------------
+    // heat transfer calculations
+    //-------------------------------------------------------------------------    
+    if (  !S_Qhx.isEmpty() ) {
+       S_Qhx.execute();
+    }
+
+    real hout;
+    if (Fl_O.W == 0) {
+      hout = htIn;
+    }
+    else {
+      hout = Fl_O.ht  - Qhx/ Fl_O.W;
+    }
+    Fl_O.setTotal_hP( hout, Fl_O.Pt );
+
+  }
+
+//-----------------------------------------------------------------
+// function allows for creation of interstage bleed ports and heat sinks
+//-----------------------------------------------------------------
+  void postcreate(string name) {
+
+      if( name->hasInterface( "BleedInPort" )) {
+	bleedInPortList.append( name );
+      }
+      
+      else if( name->hasInterface( "BleedOutPort" )) {
+         needVerify();
+	 bleedOutPortList.append( name );
+      }
+  }
+}
+
+#ifdef __NPSSCONVERTER__
+ _STD_C_INCLUDES += "\n#include <BleedOutPort.H> ";
+ _STD_C_INCLUDES += "\n#include <BleedInPort.H> ";
+#endif
+
+
+#endif

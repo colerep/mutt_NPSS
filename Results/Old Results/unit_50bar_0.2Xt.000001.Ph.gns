@@ -1,0 +1,7 @@
+Pt=2; h=6;
+set xlabel 'Enthalpy (Btu/lbm)'
+set ylabel 'Pressure (psia)'
+set log y
+plot \
+	'./results/unit_50bar_0.2Xt.000001.elements.dat' u h:Pt:(column(h+1)-column(h)):(column(Pt+1)-column(Pt)) w vector lw 2 lc 'red' title '', \
+	'' u (column(h+1)+column(h))/2.:(column(Pt+1)+column(Pt))/2.:1  with labels offset char 1,char 1 title ''

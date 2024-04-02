@@ -1,0 +1,434 @@
+/*******************************************************************************
+© Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+© 2008-2013 NPSS® Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS® software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@wolverine-ventures.com
+//
+
+#ifndef __SWRICOMPRESSOR__
+#define __SWRICOMPRESSOR__
+
+
+#include <InterpIncludes.ncp>
+
+class SwRICompressor extends Element {
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+  // Stator Vane Angle:
+  real alpha {
+    value = 1; IOstatus = INPUT; units = NONE;
+    description = "Stator Vane Angle";
+  }
+  
+  // Efficiency Variables:
+  real isenEffDes {
+    value = 1; IOstatus = INPUT; units = NONE;
+    description = "Isentropic efficiency at cycle design point";
+  }
+  real isenEff {
+    value = 1;  IOstatus = OUTPUT;  units = NONE;
+    description = "Isentropic efficiency.  Equals isenEffDes during design.";
+  }
+  real polyEff {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Actual Polytropic efficiency.";
+  }
+  real polyEff_map {
+    value = 1; IOstatus = OUTPUT ; units = NONE;
+    description = "Polytropic efficiency from S_map if socket is filled.";
+  }
+
+
+  //Pressure Difference and Head Variables:
+  real DPdes {
+    value = 1; IOstatus = INPUT ; units = "psia";
+    description = "Total-to-total pressure difference at cycle design point.";
+  }
+  real DP {
+    value = 1;  IOstatus = OUTPUT;  units = "psia";
+    description = "Total-to-total pressure difference.  Equals DPdes during design.";
+  }  
+  real polyHead {
+    value=1; IOstatus = OUTPUT ; units = "Btu/lbm";
+    description = "Actual Polytropic Head.  ";
+  }
+  real polyHead_map {
+    value=1; IOstatus = OUTPUT ; units = "Btu/lbm";
+    description = "Polytropic head from S_map if socket is filled.";
+  }
+  real k {
+    value = 1;  IOstatus = OUTPUT;  units = NONE;
+    description = "Isentropic Exponent";
+  }
+  real np {
+    value = 1;  IOstatus = OUTPUT;  units = NONE;
+    description = "Polytropic Exponent";
+  }
+  real f {
+    value = 1;  IOstatus = OUTPUT;  units = NONE;
+    description = "Schultz Polytropic Head Correction Factor";
+  }
+  
+  real PRdes {
+    value=1; IOstatus = OUTPUT ; units = NONE;
+    description = "Total-to-total pressure ratio at cycle design point.";
+  }
+  real PR {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Total-to-total pressure ratio.  Equals PRdes during design.";
+  }  
+
+  // Power
+  real pwr {
+    value = 0;  IOstatus = OUTPUT;  units = HORSEPOWER;
+    description = "Total power supplied to the shaft (total power - bleed power)";
+  }
+  real trq {
+    value = 0;  IOstatus = OUTPUT;  units = FT_LBF;
+    description = "Torque required by the compressor";
+  }
+  
+  // Inlet Volumetric Flowrate
+  real Qdotin {
+    value = 1;  IOstatus = OUTPUT;  units = "ft3/sec";
+    description = "Compressor Inlet Volumentric Flowrate in ft3/s";
+  }
+  real Qdotin_map {
+    value = 1;  IOstatus = OUTPUT;  units = "ft3/sec";
+    description = "Scaled Compressor Inlet Volumentric Flowrate in ft3/s used in S_map calculation";
+  }
+  real s_Qdotin {
+    value = 1;  IOstatus = OUTPUT;  units = "ft3/sec";
+    description = "Compressor Inlet Volumentric Flowrate scaler.";
+  }
+
+  // Calculation Variables
+  int debug {
+    value = 0;  IOstatus = OUTPUT;  units = NONE;
+    description = "Determines if this is the first time through the calcualtions.";
+  }
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+
+  Option switchDes {
+    allowedValues = { "DESIGN", "OFFDESIGN" };
+    description = "Determines if the element is in design or off-design mode";
+    trigger = 1;
+    
+  }
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+  FluidInputPort Fl_I {
+    description = "Primary incoming flow";
+  }
+
+  FluidOutputPort Fl_O {
+    description = "Primary exiting flow";
+  }
+
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+  ShaftOutputPort Sh_O {
+    description = "Mechanical connection to the shaft";
+  }
+
+// FLOW STATIONS
+
+  FlowStation Fl_Oisen {
+    description = "Temporary FlowStation used to calculate isentropic compression conditions";
+  }
+
+// SOCKETS
+
+Socket S_map {
+  allowedValues = { "polyEff_map", "polyHead_map"}
+  description = "Socket to calculate compressor map performance";
+  socketType = "COMPRESSOR_MAP";
+}
+
+
+//   Socket TB_polyEff {  
+//   description = "Efficiency versus alpha, speed and Rline.  A function or table with the name TB_eff must be declared at the subelement scope in order to fill this socket.  The format is TB_eff (real alpha, real Nc, real Rline).";
+//   socketType = "Function";
+//   required = FALSE;
+//   argTypes = { "real", "real"}
+//   returnType = "real";
+// }
+//
+// Socket TB_polyHead {  
+//   description = "Total-to-total pressure ratio versus alpha, speed and Rline.  A function or table with the name TB_PR must be declared at the subelement scope in order to fill this socket.  The format is TB_PR (real alpha, real Nc, real Rline).";
+//   socketType = "Function";
+//   required = FALSE;
+//   argTypes = { "real", "real"}
+//   returnType = "real";
+// }
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+  
+    if ( name == "switchDes" ){
+            // User provides initial guesses for W, P, h
+            // and W, P, h are all varied by the solver.
+            // Solver dependents are active for W, P, and h.
+    }   
+    if (debug) {
+      cout << "VariableChanged Summary:" << endl;
+      cout <<"switchDes == OFFDESIGN  " <<switchDes == OFFDESIGN  << endl;
+      cout <<"S_map.isEmpty()      " <<S_map.isEmpty()         << endl;
+      cout <<"ind_isenEff.autoSetup  " <<ind_isenEff.autoSetup   << endl;
+      cout <<"dep_polyEff.autoSetup  " <<dep_polyEff.autoSetup   << endl;
+      cout <<"ind_DP.autoSetup    " <<ind_DP.autoSetup       << endl;
+      cout <<"dep_polyHead.autoSetup  " <<dep_polyHead.autoSetup  << endl;
+      cout << "------------------" << endl;
+    }
+  }
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  void calculate() {
+        
+    if ( (switchDes == "DESIGN") && (S_map.isEmpty()) ) {
+      isenEff = isenEffDes;
+      DP = DPdes;
+    }
+    
+    //-----------------------------------------------------------------------
+    // Copy inlet conditions to outlet port and temporary flow station
+    //-----------------------------------------------------------------------
+
+    Fl_O.copyFlow( "Fl_I" );
+    Fl_Oisen.copyFlow( "Fl_I" );
+
+    //-----------------------------------------------------------------------
+    // Inlet Volumetric Flow Rate
+    //-----------------------------------------------------------------------
+    Qdotin = Fl_I.W / Fl_I.rhot;
+
+    //-----------------------------------------------------------------------
+    // execute the map, if it exists
+    //-----------------------------------------------------------------------
+    if( !S_map.isEmpty()) {
+      // Funciton of Inlet Volumetric Flow (Qdotin), and Stator Vane Angle, Alpha
+      // Sets polyEff_map and polyHead_map
+      S_map.execute();
+    } 
+    
+    if (debug == 1) {
+      cout << "Qdotin       " << Qdotin << endl;
+      cout << "alpha        " << alpha << endl;
+      cout << "polyHead_map " << polyHead_map << endl;
+      cout << "polyEff_map  " << polyEff_map << endl;
+      cout << "isenEff      " << isenEff << endl;
+      cout << "DP           " << DP << endl;
+      cout << "------------------" << endl;
+    }
+
+
+    //-------------------------------------------------------------------------
+    // obtain inlet flow station variables
+    //-------------------------------------------------------------------------
+    real  Win  = Fl_I.W;
+    real  TtIn = Fl_I.Tt;
+    real  PtIn = Fl_I.Pt;
+    real  htIn = Fl_I.ht;
+    real  Sin  = Fl_I.s;
+    real  RtIn = Fl_I.Rt;
+    real  rhotin = Fl_I.rhot;
+    
+    //-----------------------------------------------------------------------
+    // compute compressor exit conditions
+    //-----------------------------------------------------------------------
+
+    //-----------------------------------------------------------------------
+    // Determine the ideal exit state based on the pressure ratio.
+    // Calculate the actual exit pressure, use it and the entrance
+    // entropy to set the ideal exit conditions.
+    //-----------------------------------------------------------------------
+    
+    // Ideal exit entropy
+    real SidealOut = Sin;
+    
+    // Actual exit pressure
+    real PtOut = DP + PtIn;
+    
+    // Ideal outlet conditions
+    Fl_Oisen.setTotalSP( SidealOut, PtOut );
+    
+    // Ideal outlet enthalpy
+    real  htIdealOut = Fl_Oisen.ht;
+
+    //--------------------------------------------------------------
+    // Efficiency is the driving value.
+    // Determine the actual outlet enthalpy
+    // Use the enthalpy and the exit pressure to set
+    // the actual exit conditions and then calculate TR.
+    //--------------------------------------------------------------
+    
+    // Actual outlet enthalpy
+    real htOut = ( htIdealOut - htIn ) / isenEff + htIn;
+    
+    // Set fluid outlet conditions
+    Fl_O.setTotal_hP( htOut, PtOut );
+    PR = Fl_O.Pt / Fl_I.Pt;
+
+    //---------------------------------------------------------------------
+    // compute polytropic head and efficiency
+    //---------------------------------------------------------------------
+
+    real ft2_to_in2 = 12**2;
+    real Btu_to_ftlbf = 778.17;
+    real ftlbf_to_Btu = 1.0/Btu_to_ftlbf;
+    
+    // Isentropic Exponent, k
+    k = log(PR) / log((1.0/Fl_I.rhot)/(1.0/Fl_Oisen.rhot));
+
+    // Polytropic Exponent, np
+    np = log(PR)/log((1.0/Fl_I.rhot)/(1.0/Fl_O.rhot));
+
+    // Schultz Polytropic Head Correction Factor, f
+    f = (Fl_Oisen.ht - Fl_I.ht)*(Btu_to_ftlbf)/((k/(k-1.0))*(Fl_O.Pt*(1.0/Fl_Oisen.rhot)*ft2_to_in2 - Fl_I.Pt*(1.0/Fl_I.rhot)*ft2_to_in2));
+
+    // Polytropic Head, polyHead
+    polyHead = (np/(np-1.0))*((PR)**((np-1.0)/np)-1.0)*f*Fl_I.Pt*(1.0/Fl_I.rhot)*ft2_to_in2*ftlbf_to_Btu;
+
+    // Polytropic Efficiency, polyEff
+    polyEff = polyHead/(Fl_O.ht - Fl_I.ht);
+
+    //--------------------------------------------------------------
+    // determine the overall power prior to bleed calculations
+    //--------------------------------------------------------------
+    pwr = Win * (  htIn - htOut ) * C_BTU_PER_SECtoHP;
+    trq =  C_HP_PER_RPMtoFT_LBF * pwr / Sh_O.Nmech;
+
+    //----------------------------------------------------------------------
+    // Pass torque to the shaft output port
+    //----------------------------------------------------------------------
+    Sh_O.trq = trq;
+
+
+    if (debug == 1) {
+      cout << "---------------" <<endl;
+      cout << "---------------" <<endl;
+      cout << "polySolver" << endl;
+      cout << " iterationCounter: " << polySolver.iterationCounter << endl;
+      cout << " passCounter     : " << polySolver.passCounter << endl;
+      cout << "isenEff:   " << isenEff<<endl;
+      cout << "DP:        " << DP << endl;
+      cout << "---------------" <<endl;
+      cout << "alpha:         " << alpha << endl;
+      cout << "Qdotin:        " << Qdotin << endl;
+      cout << "---------------" <<endl;
+      cout << "Fl_I - W:   " << Fl_Oisen.W<<endl;
+      cout << "Fl_I - Pt:  " << Fl_I.Pt<<endl;
+      cout << "Fl_I - Tt:  " << Fl_I.Tt<<endl;
+      cout << "Fl_I - ht:  " << Fl_I.ht<<endl;
+      cout << "Fl_I - s:  " << Fl_I.s<<endl;
+      cout << "Fl_I - rho:  " << Fl_I.rhot<<endl;
+      cout << "Fl_I - Comp:" << Fl_I.comp<<endl;
+      cout << "---------------" <<endl;
+      cout << "Fl_Oisen - W:   " << Fl_Oisen.W<<endl;
+      cout << "Fl_Oisen - Pt:  " << Fl_Oisen.Pt<<endl;
+      cout << "Fl_Oisen - Tt:  " << Fl_Oisen.Tt<<endl;
+      cout << "Fl_Oisen - ht:  " << Fl_Oisen.ht<<endl;
+      cout << "Fl_Oisen - s:  " << Fl_Oisen.s<<endl;
+      cout << "Fl_I - rho:  " << Fl_Oisen.rhot<<endl;
+      cout << "Fl_Oisen - Comp:" << Fl_Oisen.comp<<endl;
+      cout << "---------------" <<endl;
+      cout << "Fl_O - W:   " << Fl_O.W<<endl;
+      cout << "Fl_O - Pt:  " << Fl_O.Pt<<endl;
+      cout << "Fl_O - Tt:  " << Fl_O.Tt<<endl;
+      cout << "Fl_O - ht:  " << Fl_O.ht<<endl;
+      cout << "Fl_O - s:  " << Fl_O.s<<endl;
+      cout << "Fl_I - rho:  " << Fl_O.rhot<<endl;
+      cout << "Fl_O - Comp:" << Fl_O.comp<<endl;
+      cout << "---------------" <<endl;
+      
+      cout << "Isentropic Variables:" << endl;
+      cout << "-" << endl;
+      cout << "Isentropic Efficiency   " << isenEff << endl;
+      cout << "Isentropic Exponent   " << k << endl;
+      cout << "Isentropic Head     " << (htIdealOut - htIn) << endl;
+      cout << "------------------" << endl;
+      cout << "Polytropic Variables" << endl;
+      cout << "-" << endl;
+      cout << "Polytropic Exponent    " << np << endl;
+      cout << "Schultz Correc. Factor " << f << endl;
+      cout << "Polytopic Head     " << polyHead << endl;
+      cout << "Polytropic Efficiency   " << polyEff << endl;
+      
+      if( !S_map.isEmpty()) {
+        cout << "Polytopic Head Map    " << polyHead_map << endl;
+        cout << "Polytropic Efficiency   " << polyEff_map << endl;
+        cout << "polyHead Calc-Map  [%] " << ((polyHead - polyHead_map)/ polyHead_map * 100) << endl;  
+        cout << "polyEff Calc-Map [%]  " << ((polyEff - polyEff_map)/ polyEff_map * 100)  << endl;
+      }
+      
+      cout << "------------------" << endl;
+      
+    } // end Debug output
+
+    if( S_map.isEmpty()) {
+      polyHead_map = polyHead;
+      polyEff_map = polyEff;
+      Qdotin_map = Qdotin;
+    }
+
+
+    if ( switchDes == DESIGN ) {
+      DPdes = DP;
+      isenEffDes = isenEff;
+      PRdes = PR;
+    }
+
+    if (debug > 0) {
+      cout << "cmpDebug " << parent.getName() << " " << solver.iterationCounter << " " << solver.passCounter << " " << Cmp.alpha << " " << Fl_O.Pt << " " << Fl_O.Tt << " " << polyEff_map << " " << polyHead_map << " " << Qdotin << endl;
+    }
+    
+  } // end the calculate() function
+  
+} // end SwRICompressor
+#endif

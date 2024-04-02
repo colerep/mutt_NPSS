@@ -1,0 +1,203 @@
+/* ******
+Name: mutt_loop
+Version: 0.2
+
+Author: Cole Replogle <cole.replogle@swri.org>
+
+
+Last Updated On: 12/20/2022
+Last updated by: Owen Pryor <owen.pryor@swri.org>
+
+
+Description:
+Simple cycle for sub-scale multiphase test loop. This model uses
+the REFPROP thermo package for CO2 and manually implements "tear" streams using
+FluidStartStop_2phase elements to handle the closed cycle
+
+****** */
+
+
+// Specify REFPROP thermo package
+if ( VERSION.index("2.6.") > -1 ) {
+	setThermoPackage("REFPROP");
+} else {
+	setThermoPackage("REFPROP","C:\Program Files (x86)\REFPROP");
+}
+// setThermoPackage("FPT");
+
+Option switchDes {
+	description = "Determines if the model is in design or off-design mode";
+	IOstatus = "input";
+	rewritableValues = FALSE;
+	trigger = FALSE;
+	allowedValues = {"DESIGN","OFFDESIGN"};
+}
+
+
+
+// ----------------------------------------------------------------------------
+//     Instantiate the various elements
+// ----------------------------------------------------------------------------
+
+
+
+// Instantiate a Tear Stream element named TsPump
+Element TearStreamSwRI TsTestsection {
+	// Set temperature, pressure, and mass flow rate
+	//Tt = 554.67;
+	Pt = 15;
+	ht = 100;
+	W = 0.5;
+  
+	//Set Area and velocity
+	//A = 1.;
+	//MN = 1.;
+  
+	// Set fluid composition at the fluid output port
+	Fl_O.comp = "co2"; // pure co2
+	Fl_O.setTotal_hP(ht, Pt );
+	//ht = Fl_O.ht;
+  
+	switchSolveSet = "SOLVE_P_h";
+	// switchSolveSet = "SOLVE_W_P_T";
+	//switchSolveSet = "SOLVE_h";
+}  // End TearStreamSwRI TsCmp
+
+
+// Instantiate HeaterSwri Cooler
+Element HeaterSwRI Cooler {
+	switchHeat = "SUBCOOL";
+	// Q = 1000000; //"BTU/sec";
+	// Tout = 545.67 "R";
+	dTsat = 2 "C";
+	// Tamb = 536.67 "R";
+	dPqP = 0.02;
+	// ShaftOutputPort Sh_O;
+	} // End HeaterSwRI Cooler
+
+
+// Instantiate a pump
+Element Compressor Sunshot {
+	// Subelement CompressorRlineMap S_map {
+		// #include <Sunshot_map.map>
+	// }
+	effDes = 0.8; // Compressor efficiency at cycle design point
+	PRdes = 2; // Total-to-total pressure ratio at cycle design point
+	setOption("switchDes", "DESIGN");
+	//W = 1.0; // compressor weight flow
+	//ShaftInputPort Sh_Sunshot;
+}
+
+
+// Instantiate a first valve
+Element ValveSwRI Valve1 {
+	Cv = 0.01;
+	Xt = 0.2;
+	dP = 1.0;
+}
+
+// Instantiate a second valve
+Element ValveSwRI Valve2 {
+	Cv = 0.01;
+	Xt = 0.2;
+	dP = 1.0;
+}
+
+
+// Instantiate Generator Gen
+Element Generator Gen {
+	switchTemp = "NORMAL";
+	elecLoad_in = 10 "kW";
+	Table TB_genEff (real N) {
+		N = {1000.0,5000.0,10000.0,20000.0}
+		genEff = {0.80,0.90,0.95,0.99}
+		N.extrap = "linear";
+		printExtrap = TRUE;
+		extrapIsError = FALSE;
+	}
+}
+
+
+// Instantiate Shaft Sh
+Element Shaft Sh {
+	ShaftInputPort Sh_Sunshot, Sh_Gen;
+	switchDes = "DESIGN";
+	integrate_Nmech.autoSetup = TRUE;
+	Nmech = 3000;
+}
+
+
+// Instantiate Performance Calculations Perf
+Element Perf {
+
+	
+	// Performance Calculation
+	string _QinPtr[];
+	string _PwrPrt[];
+
+	real pwrNet { units="hp"; } // hp
+	// real Qin { units = "Btu/sec"; } // Btu/s
+	// real eff { units = "none"; } // Non-dim
+	// real effC { value = -1; units = "none"; } // Non-dim
+	// real pctC { value = 0; units = "none"; } // Non-dim
+	// real h0 { value = 0.552846; units = "Btu/lbm";}
+	// real Xt { units = "Btu/sec";} // Btu/s
+	// real eff2 { units = "none"; } // Non-dim
+	
+	void calculate() {
+		// (7.456 999E+02 Hp to Watt / 1.054 350E+03 Btu to J)
+
+		pwrNet = 0; // Hp
+		string rotating[];
+		rotating = .list("Shaft");
+		int i;
+		for (i=0; i<rotating.entries(); i++) {
+			pwrNet += rotating[i]->pwrNet; // Hp
+		}
+		pwrNet = pwrNet-Sh_Gen.pwr;
+		// Qin = HtrExh.Q + HtrEGR.Q; // Btu/sec
+		// eff = pwrNet / Qin * 100.0;
+		// eff = pwrNet / convertUnits("Qin","hp");
+		// eff = pwrNet / ( Qin * 1.4148527 );
+		
+		// Xt = (FsExh.Fl_O.W*(FsExh.Fl_O.ht)+FsEGR.Fl_O.W*(FsEGR.Fl_O.ht)); // Btu/sec
+		// eff2 = pwrNet/(1.4148527*Xt);
+		// Qout = Sh_Chill.pwr;
+		
+		// Carnot efficiency
+		// if ( ( _ThotPtr != "" ) && ( _TcoldPtr != "" ) ) {
+			// effC = 1.0 - _TcoldPtr->value / _ThotPtr->value;
+			// pctC = eff / effC;
+		// } else {
+			// effC = -1;
+			// pctC = -eff;
+		// }
+		
+
+	} // calculate()
+} // Perf()
+
+
+// ----------------------------------------------------------------------------
+//     Link Ports of the different elements
+// ----------------------------------------------------------------------------
+
+// Link Ports for Recuperator, Recup
+linkPorts("TsTestsection.Fl_O","Cooler.Fl_I", "F010out");
+
+// Link Ports for Heater, Htr
+linkPorts("Cooler.Fl_O", "Sunshot.Fl_I", "F020");
+
+// Link Ports for 1st Stage Compressor, Cmp1
+linkPorts("Sunshot.Fl_O", "Valve1.Fl_I", "F030");
+
+// Link Ports for Intercooler, IntCool
+linkPorts("Valve1.Fl_O", "Valve2.Fl_I", "F040");
+
+// Link Ports for 2nd Stage Compressor, Cmp2
+linkPorts("Valve2.Fl_O", "TsTestsection.Fl_I", "F010in");
+
+
+// Link Ports for Shaft
+linkPorts( "Sunshot.Sh_O", "Sh.Sh_Sunshot", "Sh_Sunshot" ); // shaft ports
+linkPorts( "Gen.Sh_O", "Sh.Sh_Gen", "Sh_Gen" ); // shaft ports

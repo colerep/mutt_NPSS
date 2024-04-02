@@ -1,0 +1,533 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __NODALCOUNTERHX__
+#define __NODALCOUNTERHX__
+
+#include <InterpIncludes.ncp>
+
+class NodalCounterHx extends Assembly {
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+  title = ""; 
+  
+  description = isA() + " models thermal energy transfer between two counter-flowing streams
+  for both design and off-design conditons while keeping the heat exchanger  model dimensionless 
+  and check for pinch points. During design mode, the heat transfer between the two streams is 
+  determined by a desired effectiveness. Off-design analysis is based on the Conductance Method 
+  (Hoopes, K et al., 2016). The method relies on a single parameter beyond the design operating
+  conditions, namely the conductance ratio (hAratio) which is the product of heat transfer 
+  coefficient and area on both sides of the heat exchanger.This parameter is sufficient enough 
+  to capture the off-design performance of a heat exchanger without specifying its detailed 
+  geometry. The methodology is applied by discritizing the heat exchanger, and scaling each 
+  streams conductance and pressure drop. This method is valid for modelling any Heat Exchanger 
+  with counter flowing channels.";
+
+  usageNotes = isA() +
+  "
+  - The NodalCounterHx is an assembly composed of four element nescessary to perform design 
+  and off design analysis: InitialCalc, HxLink, FlowStartEnd, and OutputCalc. 
+
+  -  The InitialCalc element performs all design mode calculations based off inlet conditions 
+  and a design effectiveness. It also sets inlet conditions during off-design mode.
+
+  -  A number of HxLinks and FlowStartEnd elements are created upon instantiation and are used
+  to discritize the heat exchanger for more accurate off-design analysis. The number of nodes 
+  is determined by the user by the nNodes variable.
+  
+  - HxLinks performs calculations between each node. During design mode, the total heat exchanger
+  duty (Q) is uniformly distributed amongst the links. Each stream's conductance (hA1 and hA2)
+  is then determined by the specified conductance ratio (Default hAratio = 1). Lastly, the average 
+  thermodynamic properties and pressure drop for each stream are calculated. During off-design mode,
+  it scales each stream's conductance based off the Dittus-Boelter correlation to determine the
+  links total duty and outlet conditions.
+  
+  - The FlowStartEnd elements represent actual nodes or points along the second stream. Since the 
+  state for the HxLink inlet for stream 2 is unknown, this element provides the solver pairs 
+  nescessary to insure its conditions match the subsequent HxLink's outlet conditions.
+  
+  - The OutputCalc element is executed at end of the assembly level solver. It calculates total
+  heat exchanger duty and effectiveness. It also will generate a warning if a pinch point is detected.
+   
+  - Overall pressure drop can be assigned to each stream and is assumed to be linear during design 
+  mode. During off-design analysis, the pressure drop is scaled similar to the conductance of each 
+  stream. 
+
+  - When running off-design mode, it is recommended to 'walk' the cycle to the desired operating
+  conditions with small incremental steps. Due to the nature of problem, the assembly level solver
+  is very sensitive and its default maximum iterations and jacobian generations are set to 1000 and
+  200 respectively.  
+  
+  -  For more information refer to Hoopes, K., Sanchez, D., and Crespi, F., 2016. 'A New 
+  Method for Modelling Off-Design Performance of sCO2 Heat Exchangers Without Specifying 
+  Detailed Geometry'. In The 5th International Symposium - Supercritical CO2 Power Cycles.
+  ";
+  
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+  real Qsign {
+	value = 1; IOstatus = OUTPUT; units = NONE;
+	description = "Adjusts sign for Q depending on which streams are hot and cold";
+  }
+  real Qmax1 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Maximum possible heat transfer based off stream 1 inlet";
+  }
+  real Qmax2 {
+    value = 0;  IOstatus = OUTPUT;  units = BTU_PER_SEC;
+    description = "Maximum possible heat transfer based off stream 2 inlet";
+  }
+  real Qmax {
+	value = 0; IOstatus = OUTPUT;  units = BTU_PER_SEC;
+	description = "Maximum possible heat transfer between two streams";
+  }
+  real Q {
+	value = 0; IOstatus = OUTPUT;  units = BTU_PER_SEC;
+	description = "Actual heat transfer between two streams";
+  }
+  real effect_des {
+    value = 0.95;  IOstatus = INPUT;  units = NONE;
+    description = "Design Heat transfer effectiveness based on cp*dT";
+  }
+  real effect {
+    value = 0.95;  IOstatus = OUTPUT;  units = NONE;
+    description = "Actual Heat transfer effectiveness based on cp*dT";
+  }
+  real dPqP1 {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Pressure loss in stream 1";
+  }
+  real dPqP2 {
+    value = 0;  IOstatus = INPUT;  units = NONE;
+    description = "Pressure loss in stream 1";
+  }
+  real hAratio {
+	value = 1;  IOstatus = INPUT;  units = NONE;
+	description = "Overall heat transfer conductance ratio";
+  }
+  real W1_des {
+	value = 1;  IOstatus = INPUT;   units = NONE;
+	description = "Design mass flow rate for stream 1";
+  }
+  real W2_des {
+	value = 1;  IOstatus = INPUT;   units = NONE;
+	description = "Design mass flow rate for stream 2";
+  }
+  int nNodes {
+	value = 1;  IOstatus = INPUT;   units = NONE;
+	description = "Number of nodes to discretize heat exchanger";
+  }
+  real1D hnode_1 {
+	value = {}; IOstatus = OUTPUT; units = BTU_PER_LBM;
+	description = "Array holding each node's total enthalpy for stream 1";
+  }
+  real1D hnode_2 {
+	value = {}; IOstatus = OUTPUT; units = BTU_PER_LBM;
+	description = "Array holding each node's total enthalpy for stream 2"; 
+  }
+  real1D Tnode_1 {
+	value = {}; IOstatus = OUTPUT; units = RANKINE;
+	description = "Array holding each node's total temperature for stream 1";	  
+  }
+  real1D Tnode_2 {
+	value = {}; IOstatus = OUTPUT; units = RANKINE;
+	description = "Array holding each node's total temperature for stream 2";	  
+  }
+  real1D Pnode_1 {
+	value = {}; IOstatus = OUTPUT; units = PSIA;
+	description = "Array holding each node's total pressure for stream 1";	  
+  }
+  real1D Pnode_2 {
+	value = {}; IOstatus = OUTPUT; units = PSIA;
+	description = "Array holding each node's total pressure for stream 2";	  
+  }
+  real x1 {
+	value = 0.8;  IOstatus = INPUT;  units = NONE;
+	description = "Reynolds number exponent for Nusselt number correlation for stream 1 (Dittus-Boelter: 0.8)";
+  }
+  real y1 {
+	value = 0.3;  IOstatus = INPUT;  units = NONE;
+	description = "Prandtl  number exponent for Nusselt number correlation for stream 2 (Cold side: 0.4, Hot side 0.3)";
+  }
+  real x2 {
+	value = 0.8;  IOstatus = INPUT;  units = NONE;
+	description = "Reynolds number exponent for Nusselt number correlation for stream 2 (Dittus-Boelter: 0.8)";	
+  }
+  real y2 {
+	value = 0.4;  IOstatus = INPUT;  units = NONE;
+	description = "Prandtl  number exponent for Nusselt number correlation for stream 2 (Cold side: 0.4, Hot side 0.3)";
+  }
+  
+  int i;
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+
+  Option switchDes {
+    allowedValues = { DESIGN, OFFDESIGN }
+    description = "Design/Offdesign switch";
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  // Geometry Switch - possibility?
+  
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+  // FLUID PORTS
+  
+  // Fluid ports created via VCinit function
+  
+  // FUEL PORTS
+
+  // BLEED PORTS
+
+  // THERMAL PORTS
+
+  // MECHANICAL PORTS
+
+  // FLOW STATIONS 
+  
+  FlowStation Fl_dP {
+    description = "Temporary FlowStation used to pass data to the pressure loss Subelements.  Used because the dPnorm subelements expect to reference the incoming conditions in Fl_I.";
+  }  
+  FlowStation Fl_temp1 {
+    description = "Temporary FlowStation used for intermediate calculations for stream 1.";
+  }
+  FlowStation Fl_temp2 {
+	description = "Temporary FlowStation used for intermediate calculations for stream 2.";
+  }
+  
+  // SOCKETS 
+    
+   // TABLES
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+  Solver solver {
+	  maxIterations = 1000;
+	  maxJacobians = 200;
+  }
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------	
+  
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+	if( name =="switchDes" ) {
+		if( switchDes == "DESIGN" ) {
+		} 
+		else if( switchDes == "OFFDESIGN" ) {
+		}
+    } 
+  }  	  
+//------------------------------------------------------------
+//   ******* LOCAL ELEMENTS *******
+//------------------------------------------------------------  
+  //------------------------------------------------------------------
+  // Element for initial design and off-design calculations
+  //------------------------------------------------------------------
+  Element InitialCalc {
+	void calculate() {
+		//------------------------------------------------------------------
+		// On-Design Calculations
+		//------------------------------------------------------------------		
+		if (switchDes == "DESIGN") {
+			//------------------------------------------------------------------
+			// Determine hot and cold side to use appropriate heat transfer sign
+			//------------------------------------------------------------------			
+			if (Fl_I1.Tt > Fl_I2.Tt) {
+				Qsign = 1;
+				x1 = 0.8;
+				y1 = 0.3;
+				x2 = 0.8;
+				y2 = 0.4;
+			} else {
+				Qsign = -1;
+				x1 = 0.8;
+				y1 = 0.4;
+				x2 = 0.8;
+				y2 = 0.3;
+			}
+			//------------------------------------------------------------------
+			// set compositions
+			//------------------------------------------------------------------
+			for (i=1; i<nNodes; i++) {
+				("F1"+toStr(i)) -> comp = Fl_I1.comp;
+				("F2"+toStr(i)+"in") -> comp = Fl_I2.comp;
+				("F2"+toStr(i)+"out") -> comp = Fl_I2.comp;
+			}
+			
+			//------------------------------------------------------------------
+			// Copy entrance conditions to exit
+			//------------------------------------------------------------------
+			Fl_O1.copyFlow( "Fl_I1" ); 
+			Fl_O2.copyFlow( "Fl_I2" ); 
+			
+			//------------------------------------------------------------------
+			// Assign the correct compositions to temporary flow stations
+			//------------------------------------------------------------------
+			Fl_temp1.comp = Fl_I1.comp;
+			Fl_temp2.comp = Fl_I2.comp;
+			
+			//------------------------------------------------------------------
+			// set pressure drop conditions
+			//------------------------------------------------------------------
+			Fl_O1.setTotal_hP(Fl_I1.ht, Fl_I1.Pt * ( 1 - dPqP1));  
+			Fl_O2.setTotal_hP(Fl_I2.ht, Fl_I2.Pt * ( 1 - dPqP2));			
+			
+			//-------------------------------------------------------------------------
+			// Determine Qmax based off enthalpy change using stream 1 inlet
+			//-------------------------------------------------------------------------
+			Fl_O1.setTotalTP(Fl_I2.Tt,Fl_O1.Pt);
+			Qmax1 = Fl_I1.W*abs(Fl_I1.ht - Fl_O1.ht);
+					
+			//-------------------------------------------------------------------------
+			// Determine Qmax based off enthalpy change using stream 2 inlet
+			//-------------------------------------------------------------------------
+			Fl_O2.setTotalTP(Fl_I1.Tt,Fl_O2.Pt);
+			Qmax2 = Fl_I2.W*abs(Fl_I2.ht - Fl_O2.ht);
+
+			//-------------------------------------------------------------------------
+			// Determine max achievable heat transfer based off inlet conditions
+			//-------------------------------------------------------------------------
+			Qmax = min(Qmax1,Qmax2);
+			
+			//-------------------------------------------------------------------------
+			// Determine actual Q based off design effectiveness
+			//-------------------------------------------------------------------------
+			Q = effect_des*Qmax;
+		
+			//-------------------------------------------------------------------------
+			// Set outlet conditions
+			//-------------------------------------------------------------------------
+			Fl_O1.setTotal_hP(Fl_I1.ht - Q*Qsign / Fl_I1.W, Fl_O1.Pt);
+			Fl_O2.setTotal_hP(Fl_I2.ht + Q*Qsign / Fl_I2.W, Fl_O2.Pt); 
+
+			//------------------------------------------------------------------
+			// Save design mass flow rate for each stream
+			//------------------------------------------------------------------			
+			W1_des = Fl_I1.W;
+			W2_des = Fl_I2.W;
+			
+			//------------------------------------------------------------------
+			// Size arrays according to number of nodes
+			//------------------------------------------------------------------
+			hnode_1.resize(nNodes+1);
+			Pnode_1.resize(nNodes+1);
+			Tnode_1.resize(nNodes+1);
+			hnode_2.resize(nNodes+1);
+			Pnode_2.resize(nNodes+1);
+			Tnode_2.resize(nNodes+1);
+			
+			//------------------------------------------------------------------
+			// Define enthalpy, pressure, and temperature profiles with arrays
+			//------------------------------------------------------------------
+			hnode_1[0] = Fl_I1.ht;
+			Pnode_1[0] = Fl_I1.Pt;
+			Tnode_1[0] = Fl_I1.Tt;
+			hnode_2[nNodes] = Fl_I2.ht;
+			Pnode_2[nNodes] = Fl_I2.Pt;
+			Tnode_2[nNodes] = Fl_I2.Tt;
+			
+			for (i=1; i<=nNodes; i++) {
+				//-------------------------------------------------------------------------
+				// Stream 1 thermo properties
+				//-------------------------------------------------------------------------
+				hnode_1[i] = hnode_1[i-1] - Q*Qsign / nNodes / Fl_I1.W;
+				Pnode_1[i] = Pnode_1[i-1] - (Fl_I1.Pt - Fl_O1.Pt) / nNodes;
+				Fl_temp1.setTotal_hP(hnode_1[i],Pnode_1[i]);
+				Tnode_1[i] = Fl_temp1.Tt;
+				
+				//-------------------------------------------------------------------------
+				// Stream 2 thermo properties
+				//-------------------------------------------------------------------------			
+				hnode_2[nNodes - i] = hnode_2[nNodes - i + 1] + Q*Qsign / nNodes / Fl_I2.W;	
+				Pnode_2[nNodes - i] = Pnode_2[nNodes - i + 1] - (Fl_I2.Pt - Fl_O2.Pt) / nNodes;
+				Fl_temp2.setTotal_hP(hnode_2[nNodes - i],Pnode_2[nNodes - i]);
+				Tnode_2[nNodes - i] = Fl_temp2.Tt;
+			}
+			//------------------------------------------------------------------
+			// Define the attributes for each link element
+			//------------------------------------------------------------------
+			for (i=1; i<=nNodes; i++) {
+				("HxLink"+toStr(i)+".Q") -> value = Q/nNodes;
+				("HxLink"+toStr(i)+".linkIndex") -> value = i;
+				("HxLink"+toStr(i)+".dP1_des") -> value = Pnode_1[i-1] - Pnode_1[i];
+				("HxLink"+toStr(nNodes-i+1)+".dP2_des") -> value = Pnode_2[nNodes-i+1] - Pnode_2[nNodes-i];		
+			}
+			//------------------------------------------------------------------
+			// Define the attributes for each node element
+			//------------------------------------------------------------------			
+			for (i=1; i<nNodes; i++) {
+				("HxNode"+toStr(i)+".ht") -> value = hnode_2[i];
+				("HxNode"+toStr(i)+".Pt") -> value = Pnode_2[i];
+				("HxNode"+toStr(i)+".Tt") -> value = Tnode_2[i];
+				("HxNode"+toStr(i)+".W") -> value = W2_des;
+			}
+		} 
+		//------------------------------------------------------------------
+		// Off-Design Calculations
+		//------------------------------------------------------------------	
+		else if (switchDes == "OFFDESIGN") {
+			//------------------------------------------------------------------
+			// Set Boundary Conditions
+			//------------------------------------------------------------------
+			hnode_1[0] = Fl_I1.ht;
+			Pnode_1[0] = Fl_I1.Pt;
+			Tnode_1[0] = Fl_I1.Tt;
+			hnode_2[nNodes] = Fl_I2.ht;
+			Pnode_2[nNodes] = Fl_I2.Pt;
+			Tnode_2[nNodes] = Fl_I2.Tt;
+		}			
+	}
+  }
+  //------------------------------------------------------------------
+  // Element for calculate Q and effectiveness
+  //------------------------------------------------------------------
+  Element OutputCalc {
+	void calculate() {
+		//-------------------------------------------------------------------------
+		// Determine Qmax based off enthalpy change using stream 1 inlet
+		//-------------------------------------------------------------------------
+		Fl_temp1.setTotalTP(Fl_I2.Tt,Fl_O1.Pt);
+		Fl_temp1.setTotalTP(Fl_I2.Tt,Fl_O1.Pt);
+		Qmax1 = Fl_I1.W*abs(Fl_I1.ht - Fl_temp1.ht);
+
+		//-------------------------------------------------------------------------
+		// Determine Qmax based off enthalpy change using stream 2 inlet
+		//-------------------------------------------------------------------------
+		Fl_temp2.setTotalTP(Fl_I1.Tt,Fl_O2.Pt);
+		Qmax2 = Fl_I2.W*abs(Fl_I2.ht - Fl_temp2.ht);
+		
+		//-------------------------------------------------------------------------
+		// Determine max achievable heat transfer based off inlet conditions
+		//-------------------------------------------------------------------------
+		Qmax = min(Qmax1,Qmax2);
+		
+		//-------------------------------------------------------------------------
+		// Determine actual Q by summing each link's duty
+		//-------------------------------------------------------------------------
+		Q = 0;
+		for (i=1; i<=nNodes; i++) {
+			Q += ("HxLink"+toStr(i)+".Q") -> value;
+		}
+		
+		//-------------------------------------------------------------------------
+		// Calculate effectiveness for the given operating condition
+		//-------------------------------------------------------------------------
+		effect = Q/Qmax;
+		
+		//-------------------------------------------------------------------------
+		// Total pressure drop for each stream
+		//-------------------------------------------------------------------------
+		dPqP1 = (Fl_I1.Pt - Fl_O1.Pt) / Fl_I1.Pt;
+		dPqP2 = (Fl_I2.Pt - Fl_O2.Pt) / Fl_I2.Pt;
+		
+		//-------------------------------------------------------------------------
+		// Check for pinch points
+		//-------------------------------------------------------------------------
+		for (i=0; i<=nNodes; i++) {
+			if (Qsign*(Tnode_1[i] - Tnode_2[i]) < 0) {
+				ESOreport(2022001,"Pinch point located at node. Adjust inlet conditions.");
+			}
+		}
+	}
+  }
+//------------------------------------------------------------
+//   ******* INITIALIZATION FUNCTION *******
+//------------------------------------------------------------
+  void VCinit() {
+	//------------------------------------------------------------
+	// Create FlowStartEnd for nodes along stream 2
+	//------------------------------------------------------------	
+	for (i=1; i<nNodes; i++) {			
+		create("Element","FlowStartEnd","HxNode" + toStr(i));	
+	}  
+	//------------------------------------------------------------
+	// Create link elements to perform calculations between nodes
+	//------------------------------------------------------------
+	for (i=1; i<=nNodes; i++) {				
+		create("Element","HxLink","HxLink" + toStr(i));	
+	}
+	//------------------------------------------------------------
+	// Promote inlet ports
+	//------------------------------------------------------------	
+	promotePort("HxLink1.Fl_I1",					"Fl_I1");
+	promotePort("HxLink"+toStr(nNodes)+".Fl_I2",	"Fl_I2");
+	
+	//------------------------------------------------------------
+	// Connect ports between links
+	//------------------------------------------------------------
+	for (i=1; i<nNodes; i++) {
+		linkPorts("HxLink"+toStr(i)+".Fl_O1", 			"HxLink"+toStr(i+1)+".Fl_I1",		"F1"+toStr(i));
+		linkPorts("HxLink"+toStr(nNodes-i+1)+".Fl_O2",	"HxNode"+toStr(nNodes-i)+".Fl_I",	"F2"+toStr(i)+"in");
+		linkPorts("HxNode"+toStr(nNodes-i)+".Fl_O",		"HxLink"+toStr(nNodes-i)+".Fl_I2",	"F2"+toStr(i)+"out");
+	}
+	//------------------------------------------------------------
+	// Promote outlet ports
+	//------------------------------------------------------------	
+	promotePort("HxLink"+toStr(nNodes)+".Fl_O1",	"Fl_O1");
+	promotePort("HxLink1.Fl_O2",					"Fl_O2");
+
+	//------------------------------------------------------------
+	// OutputCalc element moved to end of solver sequence
+	//------------------------------------------------------------	
+	solver.executionSequence.remove("OutputCalc");
+	solver.executionSequence.append("OutputCalc");
+	
+	//------------------------------------------------------------
+    // register the appropriate errors at build time
+    //------------------------------------------------------------
+	ESOregCreate( 2022001, 7, "", TRUE, FALSE, TRUE );
+  }
+}
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

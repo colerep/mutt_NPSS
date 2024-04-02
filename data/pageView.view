@@ -1,0 +1,70 @@
+// Example PageViewer definition file
+OutFileStream pageOut {
+  filename = "cout";
+}
+PageViewer pageView {
+	outStreamHandle = "pageOut";
+	anchor = "title";
+	SimpleBlock title {
+		body = "*******************************************************************************\n" +
+			"??????????, model:???????????????, run by:???????? \n"+
+			"solutionMode=?????????????, converge=??, case:??? time:???.??? timeStep:?.???? \n" +
+			"therm_package:??????, iter/pas/Jac/Broy=???/???/??/?? \n"+
+			"Run Date: ???????? ????????" ;
+		vars = {"VERSION","MODELNAME","USER","solver.solutionMode","solver.converged", "CASE",
+			"time","timeStep","THERMPACKAGE","solver.iterationCounter","solver.passCounter","solver.numJacobians","solver.numBroydens","date","timeOfDay"}
+		bottom = "FlowStart";
+	}
+	DRowTBlock FlowStart {
+		titleBody = "FlowStart";
+		compType = "FlowStart";
+		compAttr = {"Tt:????.?", "Pt:?????.?"}
+		bottom = "Loads";
+		right = "colSpace1";
+	}
+	EmptyTextBlock colSpace1 {
+		height = 4;
+		width = 20;
+		right = "FlowEnd";
+	}
+	DRowTBlock FlowEnd {
+		titleBody = "FlowEnd";
+		compType = "FlowEnd";
+		compAttr = {"Tt:????.?", "Pt:?????.?"}
+	}
+	DRowTBlock Loads {
+		titleBody = "Loads";
+		compType = "Load";
+		compAttr = {"Nload:????????=RPM", "pwr:?????.?@kW=Pwr(kW)"}
+		// bottom = "outStations";
+		bottom = "compressors";
+		// right = "colSpace2";
+	}
+	// EmptyTextBlock colSpace2 {
+		// height = 4;
+		// width = 20;
+		// right = "Compr";
+	// }
+	// DRowTBlock Compr {
+		// titleBody = "Compressor";
+		// compType = "Compressor";
+		// compAttr = {"PR:??.???", "eff:??.??","pwr:?????.?","Qhx:???.?"}
+	// }
+	DColTBlock compressors {
+		titleBody = "Compressor Sections";
+		compType = "Compressor";
+		compAttr = {"PR:??.???", "eff:??.??","pwr","Qhx","pwr:?????.?@kW=Pwr(kW)","Qhx:???.?@kW=Q(kW)"}
+		bottom = "coolers";
+	}
+  DColTBlock coolers {
+    titleBody = "Cooler Sections";
+    compType = "HeaterSwRI";
+    compAttr = {"Tout", "dT","pwr","Q","pwr@kW=Pwr(kW)","Q@kW=Q(kW)"}
+    bottom = "outStations";
+  }
+	LinkColTBlock outStations {
+		titleBody = "Outlet Stations";
+		compType = "FluidOutputPort";
+		compAttr = {"Tt:????.?@F=Tt(F)", "Pt:?????.?", "W:???.????","A:??.???","rhot:???.??@kg/m3=Rho(kg/m3)","rhot:??.???=Rho(lbm/ft3)"}
+	}
+}

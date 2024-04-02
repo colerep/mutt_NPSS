@@ -1,0 +1,97 @@
+#ifndef __GENERATOR__
+#define __GENERATOR__
+
+#include <InterpIncludes.ncp>
+
+class Generator extends Element {
+
+	// Documentation
+	description = isA() + "generates electrical power from a shaft power input.";
+	
+	// Normal variables
+	
+	//Inputs
+	real elecLoad_in {
+		value = 0;  IOstatus = INPUT;  units = KW;
+		description = "Electrical power load (input)";
+	}
+	
+	//Outputs
+	real eff {
+		value = 1;  IOstatus = OUTPUT;  units = NONE;
+		description = "Mechanical to electrical power conversion efficiency";
+	}
+	
+	real s_eff {
+		value = 1; IOstatus = OUTPUT; units = NONE;
+		description = "Power conversion efficiency scalar";
+	}
+	
+	real N {
+		value = 0; IOstatus = OUTPUT; units = RPM;
+		description = "Generator shaft speed";
+	}
+	
+	real trq {
+		value = 0; IOstatus = OUTPUT; units = FT_LBF;
+		description = "Torque supplied to the generator shaft";
+	}
+	
+	real pwr {
+		value = 0; IOstatus = OUTPUT; units = HORSEPOWER;
+		description = "Mechanical power consumption";
+	}	
+	
+	// Option variables
+	Option switchTemp {
+		allowedValues = { "NORMAL", "HOT" }
+		description = "Sets if generator is overheating (NORMAL / HOT)";
+		rewritableValues = FALSE; 
+	}
+	
+	// Ports
+	ShaftOutputPort Sh_O {
+		description = "Mechanical connection to the shaft";
+	}
+	
+	// Sockets
+	Socket TB_genEff {
+		allowedValues = { };
+		argTypes = {"real"};
+		returnType = "real";
+		description = "Socket to calculate generator efficiency";
+		socketType = "Function";
+		required = TRUE;
+	}
+	
+	// variableChanged()
+	void variableChanged(string name, any oldVal) {
+		if (name == "switchTemp") {
+			if (switchTemp == "NORMAL") {
+				s_eff = 1;
+			} else if (switchTemp == "HOT") {
+				s_eff = 0.9;
+			}
+		}
+	}
+	
+	// Engineering calculations
+	void calculate() {
+		// Obtain the shaft speed
+		N = Sh_O.Nmech;
+		
+		// Determine power conversion efficiency at shaft speed
+		eff = s_eff * TB_genEff(N);
+	
+		// Calculate torque required to satisfy load at current speed
+		trq = -(elecLoad_in / eff) / (N * 2.*PI / 60.) * getUnitsFactor("N*m","ft*lbf") * 1000.0;
+		
+		// Calculate the shaft power consumption
+		pwr = trq * (N * 2.*PI / 60.) * getUnitsFactor("ft*lbf/sec","hp");
+		
+		// Supply the torque to the shaft port
+		Sh_O.trq = trq;
+	}
+
+}
+#endif

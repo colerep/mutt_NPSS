@@ -1,0 +1,119 @@
+//-----------------------------------------------------------------------------
+//  Filename:   FlowSheetSwRI.int
+//  Author:     Aaron McClung
+//  Version:    0.12
+//  Date:       2015.10.26
+// 
+//  Description: 
+//      Element that utilizes GenGmlSwRI to Process Flow Sheet for each 
+//      iteration when included in the solverSequence or for the each 
+//      converged case when included in postsolverSequence. 
+//      
+//  Revisions:
+//      v0.10 2015.09.21
+//      - Initial version compiled and streamlined from past models
+//      v0.11 2015.10.16
+//      - Updated to use SwRIgenGML.v11.fnc
+//      v0.11 2015.10.26
+//      - Renamed FlowSheetSwRI
+//      - Updated to use GenGmlSwRI.fnc
+//---------------------------------------------------------------------------
+
+// TO BE UPDATED
+
+//// Include the following code in the model setup
+
+// #define DEBUG 0
+// #define SOLVERDEBUG 0
+// #include <modelDebug.inc>
+
+//// Include the following code after the solver has been configured
+
+// if ( $DEBUG > 0 ) {
+//
+//  // Add to solverSequence to debug iteration level
+//  solverSequence.append("solverReport");
+//  // solverSequence.append("modelLayout");
+//
+//  // Add to postsolverSequence to debug case
+//  postsolverSequence.append("solverReport");
+//  // postsolverSequence.append("modelLayout");
+//
+//  // Print initial configuration
+//  solverReport.calculate();
+// }
+
+#ifndef __FlowSheetSwRI__
+#define __FlowSheetSwRI__
+
+#include <InterpIncludes.ncp>
+#include <queryFunctionsSwRI.fnc>
+
+// Configure Flow Network Diagram
+#ifndef GENGML
+#define GENGML 1
+#endif
+// include <SwRIgenGML.v6.fnc.bak>
+// include <SwRIgenGML.v7.fnc>
+// include <SwRIgenGML.v8.fnc>
+// include <SwRIgenGML.v9.fnc>
+// include <SwRIgenGML.v10.fnc>
+#include <GenGmlSwRI.fnc>
+
+class FlowSheetSwRI extends Element {
+
+  int verbLevels[] = { 0, 1, 2, 3, 4 };
+  
+  int trackIter = 1;
+  string basename = "case";
+  string fileName;
+	int doRun = $GENGML;
+
+  string genFileName() {
+    if (trackIter > 0) {
+      return strFmt("%s.%06d.%01d.%06d.%s.gml", basename, CASE, gml.VERBOSE,solver.iterationCounter,gml.switchUnits);
+    } else {
+      return strFmt("%s.%06d.%01d.%s.gml", basename, CASE, gml.VERBOSE,gml.switchUnits);
+    }
+  }
+        
+  void calculate() {
+
+    // casename = strFmt("%s.%06d.%06d",basename,CASE,solver.iterationCounter);
+        
+        
+    // Generate GML diagram
+    if ( doRun ) {
+      int i;
+      for (i=0; i<verbLevels.entries(); i++) {
+        gml.VERBOSE = verbLevels[i]; // 0 = Do not print variable list, 1 = Print variable list
+        gml.setGmlFile( genFileName() );
+        gml.genVerboseGml( gml.VERBOSE );
+
+        // close output stream
+        gml.os_gml.close();
+      }
+    }
+  }
+
+  void solverSequence() {
+    autoAddToSolvSeq = TRUE;
+    trackIter = 1;
+    solverSequence.append(parent.getName());
+    if (postsolverSequence.contains(parent.getName())) {
+      postsolverSequence.remove(parent.getName());
+    }
+  }
+	
+  void postsolverSequence() {
+    autoAddToSolvSeq = FALSE;
+    trackIter = 0;
+    if (solverSequence.contains(parent.getName())) {
+      solverSequence.remove(parent.getName());
+    }
+    postsolverSequence.append(parent.getName());	
+  }
+	
+}
+
+#endif

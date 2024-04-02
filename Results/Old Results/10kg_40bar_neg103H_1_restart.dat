@@ -1,0 +1,7 @@
+// creplogle NPSS_2.8 01/19/23 16:33:18
+// CASE = 1
+Sh.Nmech = 3575; // Sh.ind_Nmech Nmech
+TsPump.ht = -123.01303521108527; // TsPump.ind_ht ht
+TsPump.Pt = 580.1510212714453; // TsPump.ind_Pt Pt
+TsPump.Tt = 0; // TsPump.ind_Tt Tt
+TsPump.W = 10; // TsPump.ind_W W

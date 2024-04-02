@@ -1,0 +1,125 @@
+CaseColumnViewer printStep {
+
+
+    void appendEntries() {
+        int i, j;
+        string n;
+        for (i=0; i<oList.entries(); i++) {
+            for (j=0; j<sList.entries(); j++) {
+              n = oList[i] + "." + sList[j];
+              if (exists(n)) {
+                dynList.append(n);
+              }
+            }
+        }
+    }
+
+    void appendVariable(string n) {
+        if (exists(n)) {
+            dynList.append(n);
+        }
+    }
+
+
+    outStreamHandle = "cout";
+    variableList = {};
+
+    string dynList[] = {"CASE"};
+
+    appendVariable("CmpCheck");
+
+    string oList[];
+    string sList[];
+
+    // FluidLinks
+    oList = .list("Link",1,"exists(\"Tt\")==1");
+    sList = {"Tt","Pt","ht","s","W","gamt","rhot","W"};
+    if ( THERMPACKAGE == "REFPROP" ) { sList.append("xt"); }
+    appendEntries();
+
+    oList = .list("Port",1,"exists(\"Tt\")==1");
+    sList = {"Tt","Pt","ht","W"};
+    if ( THERMPACKAGE == "REFPROP" ) { sList.append("xt"); }
+    appendEntries();
+
+    // Compressors and Turbines
+    oList = .list("Element",1,"exists(\"PRdes\")==1");
+    sList = { "pwr", "trq", "PR", "PRdes" };
+    appendEntries();
+
+    // Shafts
+    oList = .list("Shaft",1,"exists(\"pwrNet\")==1");
+    sList = { "pwrIn", "pwrOut", "pwrNet", "trqIn", "trqOut", "trqNet" };
+    appendEntries();
+
+    // Heaters
+    oList = .list("HeaterSwRI",1);
+    sList = { "switchHeat", "coolerMode", "dT", "dTsat", "Q", "hout", "Tout", "x", "pwr" };
+    appendEntries();
+
+    // // HeatExchangers
+    // oList = .list("HeatExchanger",1);
+    // sList = { "switchQcalc", "switchQ", "Q", "effect", "cap1", "cap2" };
+    // appendEntries();
+
+    // HeatExchangers
+    oList = .list("CounterHxSwRI",1);
+    // sList = { "switchQcalc", "switchQ", "Q", "effect_Cp", "effect_h", "cap1", "cap2" };
+    sList = { "switchQ", "switchApproachCalc",
+              "effect_Cp", "effect_des", "effect_h",
+              "cap1", "cap2", "capMin",
+              "approach_des", "approach_hotOut", "approach_hotIn", "approach_min", "minDt",
+              "Q_des", "Q", "Qmax1", "Qmax2", "Qmin_h" };
+    appendEntries();
+
+
+    // HeatExchangers
+    oList = { "Perf" };
+    sList = { "pwrNet", "Qin", "eff", "effC", "pctC", "effTh", "Qth" };
+    appendEntries();
+
+    // solver
+    oList = { "solver" };
+    sList = { "converged", "iterationCounter", "passCounter" };
+    appendEntries();
+
+    // Error Handler
+    oList = { "errHandler" };
+    sList = { "numErrors", "numWarnings", "numMessages" };
+    appendEntries();
+
+    // scalars
+    //dynList.append( "pctAcetone_in");
+
+    variableList = dynList;
+
+    // cout << "dynList " << dynList << endl;
+    // cout << "variableList " << variableList << endl;
+}
+
+CaseColumnViewer printColumn {
+    outStreamHandle = "os_printColumn";
+    variableList = printStep.variableList;
+    // Formatting
+    defRealFormat = "?????.?????";
+    defSNFormat   = "??.?????E????";
+    caseHeaderBody = "";
+    caseHeaderVars = {};
+    showErrors = 0;
+    showMarks = 0;
+    titleBody = "# " + titleBody;
+}
+
+CaseRowViewer printRow {
+    outStreamHandle = "os_printRow";
+    // Re-use the variable list
+    variableList = printStep.variableList;
+    // Formatting
+    defRealFormat = "?????.?????";
+    defSNFormat   = "??.?????E????";
+    caseHeaderBody = "";
+    caseHeaderVars = {};
+    showErrors = 0;
+    showMarks = 0;
+    titleBody = "# " + titleBody;
+}

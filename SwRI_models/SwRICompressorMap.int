@@ -1,0 +1,206 @@
+/*******************************************************************************
+© Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+© 2008-2013 NPSS® Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS® software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@wolverine-ventures.com
+//
+
+#ifndef __SWRICOMPRESSORMAP__
+#define __SWRICOMPRESSORMAP__
+
+#include <InterpIncludes.ncp>
+
+// Variables that exist in the parent Compressor element
+// and are used in this subelement.
+extern real alpha;
+extern real Qdotin;
+extern real Qdotin_map;
+
+// Variables that exist in the parent Compressor element
+// and are set by this subelement.
+extern real polyEff_map;
+extern real polyHead_map;
+
+
+class SwRICompressorMap extends Subelement {
+
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+  
+Option switchAlpha {
+  allowedValues = { "INPUT", "LOOKUP" };
+  description = "Determines if the element is in design or off-design mode";
+  trigger = 1;
+}
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+
+// FLOW STATIONS
+
+// SOCKETS
+addInterface( "COMPRESSOR_MAP" ); // compatible with the Compressor element's S_map socketType
+  
+Socket TB_polyEff {  
+   description = "Efficiency versus alpha, speed and Rline.  A function or table with the name TB_eff must be declared at the subelement scope in order to fill this socket.  The format is TB_eff (real alpha, real Nc, real Rline).";
+   socketType = "Function";
+   required = FALSE;
+   argTypes = { "real", "real"}
+   returnType = "real";
+ }
+
+ Socket TB_polyHead {  
+   description = "Total-to-total pressure ratio versus alpha, speed and Rline.  A function or table with the name TB_PR must be declared at the subelement scope in order to fill this socket.  The format is TB_PR (real alpha, real Nc, real Rline).";
+   socketType = "Function";
+   required = FALSE;
+   argTypes = { "real", "real"}
+   returnType = "real";
+ }
+
+// TABLES
+
+
+//------------------------------------------------------------
+// ******* INTERNAL SOLVER SETUP *******
+//------------------------------------------------------------
+
+  SecantSolver iterAlpha {
+    description = "solver for alpha";
+    maxDx = 2.0;
+    tolerance = 1.E-4;  // tolPs
+    perturbSize = 0.01;
+    maxIters = 50;
+  }
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+    Independent ind_isenEff{
+        varName = "isenEff";
+        autoSetup = TRUE;
+    }
+    Dependent dep_polyEff{
+        eq_lhs = "polyEff_map";
+        eq_rhs = "polyEff";
+        eq_Ref = "polyEff_map";
+        autoSetup = TRUE;
+    }
+    Independent ind_DP{
+        varName = "DP";
+        autoSetup = TRUE;
+    }
+    Independent ind_alpha{
+        varName = "alpha";
+        autoSetup = FALSE;
+    }
+    Dependent dep_polyHead{
+        eq_lhs = "polyHead_map";
+        eq_rhs = "polyHead";
+        eq_Ref = "polyHead_map";
+        autoSetup = TRUE;
+    }
+
+  
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+  
+    if ( name == "switchAlpha" ){
+
+      if ( switchAlpha == "INPUT") {
+        ind_DP.autoSetup        = TRUE;
+        dep_polyHead.autoSetup  = TRUE;
+      } else if ( switchAlpha == "LOOKUP") {
+        ind_DP.autoSetup        = FALSE;
+        dep_polyHead.autoSetup  = FALSE;
+      }
+
+    }
+
+  }
+
+//------------------------------------------------------------
+//   ******* PERFORM ENGINEERING CALCULATIONS *******
+//------------------------------------------------------------
+  
+  void callMaps() {
+    //-------------------------------------------------------------------
+    // execute the efficiency map (function socket)
+    //-------------------------------------------------------------------
+    polyEff_map = TB_polyEff(alpha, Qdotin);  
+
+    //-------------------------------------------------------------------
+    // execute the pressure map (function socket)
+    //-------------------------------------------------------------------  
+    polyHead_map = TB_polyHead(alpha, Qdotin);
+  }
+
+
+  void calculate() {
+
+    // cout << "S_map: " << polyEff_map << " = TB_polyEff(" << alpha << ", " << Qdotin << "); " << endl;
+
+    if ( switchAlpha == "INPUT" ) {
+      callMaps();
+    } else if ( switchAlpha == "LOOKUP" ) {
+      // Provide initial value to secant solver
+      iterAlpha.initialize( -10. );
+      do {
+       
+        // execute maps
+        callMaps();
+        
+        // Ask secant solver for new alpha
+        alpha = iterAlpha.iterate( ( polyHead_map - polyHead )/ polyHead );
+        
+        // Check alpha against bounds
+        // alpha = max(alpha,-65);
+        // alpha = min(alpha, 10);
+
+      } while ( !( iterAlpha.isConverged() ) && !( iterAlpha.errorType ) );
+    } // end calculate() function
+
+    // cout << "S_map: " << polyHead_map << " = TB_polyHead(" << alpha << ", " << Qdotin << ");" << endl;
+  }
+  
+} // end CompressorRlineMap subelement class
+ 
+#endif

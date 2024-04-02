@@ -1,0 +1,254 @@
+//-----------------------------------------------------------------------------
+//  Filename:   SolverReportSwRI.int
+//  Author:     Aaron McClung
+//  Version:    0.11
+//  Date:       2015.1026
+// 
+//  Description: 
+//      Helper elements for debugging solution convergence 
+//
+//  Revisions:
+//      v0.10 2015.09.21
+//      - Initial version compiled and streamlined from past models
+//      v0.11 2015.10.26
+//      - Update file names and dependencies for swriemi.git
+//-----------------------------------------------------------------------------
+
+// TO BE UPDATED
+
+//// Include the following code in the model setup
+
+// #define DEBUG 0
+// #define SOLVERDEBUG 0
+// #include <modelDebug.inc>
+
+//// Include the following code after the solver has been configured
+
+// if ( $DEBUG > 0 ) {
+//
+//  // Add to solverSequence to debug iteration level
+//  solverSequence.append("solverReport");
+//  // solverSequence.append("modelLayout");
+//
+//  // Add to postsolverSequence to debug case
+//  postsolverSequence.append("solverReport");
+//  // postsolverSequence.append("modelLayout");
+//
+//  // Print initial configuration
+//  solverReport.calculate();
+// }
+
+#ifndef __SolverReportSwRI__
+#define __SolverReportSwRI__
+
+#include <InterpIncludes.ncp>
+#include <queryFunctionsSwRI.fnc>
+
+OutFileStream os_solverReport {filename = "solver.out"; }
+
+CaseColumnViewer ccv_solverReport {
+  outStreamHandle = "os_solverReport";
+  variableList = {
+    //"solver.aDSVchangedState"
+    //,"solver.aDSVtoggled"
+    // ,"solver.assocClass"
+    // ,"solver.autonomousProvisionals"
+    "solver.broydenCounter"
+    ,"solver.broydenCutoffMultiplier"
+    ,"solver.broydenLimit"
+    // ,"solver.constraintHandlingOpt"
+    // ,"solver.constraintNames"
+    // ,"solver.constraintsActive"
+    ,"solver.continuousConverged"
+    ,"solver.converged"
+    ,"solver.convergenceLimit"
+    ,"solver.convergenceRatio"
+    ,"solver.currentDSVlevel"
+    // ,"solver.debugLevel"
+    ,"solver.defaultDxLimit"
+    ,"solver.defaultDxLimitType"
+    ,"solver.defaultPerturbation"
+    ,"solver.defaultPerturbationType"
+    ,"solver.defaultTolerance"
+    ,"solver.defaultToleranceType"
+    ,"solver.defaultXLimitReport"
+    // ,"solver.dependentNames"
+    // ,"solver.description"
+    // ,"solver.determinant"
+    // ,"solver.diagnosticFile"
+    ,"solver.disconIterationCounter"
+    ,"solver.divergenceCutoffMultiplier"
+    ,"solver.divergenceLimit"
+    ,"solver.doInitialPass"
+    // ,"solver.DSVbounce"
+    // ,"solver.DSVnames"
+    // ,"solver.DSVvalues"
+    // ,"solver.dxLimIndepIndex"
+    // ,"solver.dxLimIndepName"
+    // ,"solver.dxLimited"
+    // ,"solver.dxUnlim"
+    // ,"solver.errorConverged"
+    // ,"solver.errorsActive"
+    // ,"solver.errorsInactive"
+    // ,"solver.executionSequence"
+    ,"solver.firstNewJacobian"
+    ,"solver.forceNewJacobian"
+    // ,"solver.hasBeenRun"
+    // ,"solver.iDescription"
+    // ,"solver.independentNames"
+    // ,"solver.independentValues"
+    ,"solver.iterationCounter"
+    // ,"solver.J"
+    // ,"solver.jacobian"
+    // ,"solver.Jaux"
+    ,"solver.lastPerturbationPass"
+    ,"solver.linearDependencyTolerance"
+    ,"solver.matrixErrorForm"
+    ,"solver.matrixSize"
+    ,"solver.maxBroydens"
+    ,"solver.maxConstraintProjections"
+    ,"solver.maxConvergeFailures"
+    ,"solver.maxDisconIterations"
+    ,"solver.maxDSVlevel"
+    ,"solver.maxFreeToggles"
+    ,"solver.maxIterations"
+    ,"solver.maxJacobians"
+    ,"solver.maxPasses"
+    ,"solver.minBroydenUpdate"
+    ,"solver.minDSVlevel"
+    ,"solver.minJacobianTerm"
+    ,"solver.minMaxConflict"
+    ,"solver.minMaxConflictIsError"
+    ,"solver.numBroydens"
+    ,"solver.numJacobians"
+    ,"solver.passCounter"
+    ,"solver.passType"
+    ,"solver.perturbationCounter"
+    // ,"solver.postExecutionSequence"
+    // ,"solver.preExecutionSequence"
+    ,"solver.regenNewJacobian"
+    ,"solver.resolveMinMaxConflict"
+    ,"solver.resolveYRefLock"
+    ,"solver.scaleFactor"
+    ,"solver.singularityTest"
+    ,"solver.singularRowColTolerance"
+    ,"solver.solutionMode"
+    ,"solver.solverSequenceDuplicatesAllowed"
+    // ,"solver.switchUBC"
+    ,"solver.testRealValid"
+    ,"solver.testXConvergence"
+    ,"solver.toleranceScaleFactor"
+    ,"solver.totalBroydens"
+    ,"solver.totalContinuousConvergences"
+    ,"solver.totalIterations"
+    ,"solver.totalJacobians"
+    ,"solver.totalPasses"
+    // ,"solver.updateConverged"        
+  }
+        
+}
+
+// Add to solver sequence so it updates every subiteration
+solverSequence.append("ccv_solverReport");
+  
+// -------------------------------
+//      Solver Option Setup
+// -------------------------------
+solver.debugLevel = "ITERATION_DETAILS";
+solver.diagnosticFile = "solver.diag";
+
+class SolverReportSwRI extends Element {
+
+  /*
+    if ( ! $SOLVERDEBUG ) {
+    autoAddToSolvSeq = FALSE;
+    }
+  */
+  
+  // allow for toggling report after element has been instantiated
+  int report = TRUE;
+  
+  void calculate() {
+      
+    // Query the Model
+    string sList[];
+    string oList[];
+    string sep = ",\n  ";
+    string pre = "";
+
+    if (report) {
+
+      // os_solverReport.filename=strFmt("solver.%06d.%06d.out", CASE, solver.iterationCounter);
+      os_solverReport.filename = "cout";
+
+      
+      os_solverReport << "\n*** SOLVER REPORT *** \n";
+      os_solverReport << "CASE: " << CASE << " Iteration: " << solver.iterationCounter << " Total Passes: " << solver.totalPasses << endl;
+
+      // Solver properties
+      os_solverReport << "\n  ** SOLVER **" << endl;
+      sep = ",\n  ";
+      pre = "  ";
+      oList = { "solver" };
+
+      os_solverReport << "\n  ** EXECUTION **\n";
+      sList = { "preExecutionSequence", "executionSequence", "postExecutionSequence"};
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+        
+      sep = ", ";
+        
+      os_solverReport << "\n  ** STATUS ** \n";
+      sList = { "converged", "convergenceLimit", "convergenceRatio", "passType", "iterationCounter", "numBroydens", "numJacobians", "J", "passCounter", "perturbationCounter", "lastPerturbationPass"};
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+        
+      sList = { "independentNames", "independentValues"};
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+
+      sList = { "dependentNames" };
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+
+        
+      os_solverReport << "\n  ** INDEPENDENT ** \n";
+      oList=solver.independentNames;
+      sList = { "varName", "indepRef", "x" };
+      os_solverReport << printObjAttr( oList, sList, sep, pre );        
+
+
+      os_solverReport << "\n  ** DEPENDENT ** \n";
+      oList=solver.dependentNames;
+      sList = { "eq_lhs", "y1", "eq_rhs", "y2", "eq_Ref", "tolerance", "toleranceType", "errorCon", "errorIter" };
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+        
+      sep = ", ";
+
+      // Fluid Link Properties
+      os_solverReport << "\n  ** Fluid Links **" << endl;
+      oList = .list("Link",0,"exists(\"Tt\")==1");
+      sList = { "Tt", "Pt", "ht", "s", "W" }
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+
+      // Compressor and Turbine Elements
+      os_solverReport << "\n  ** Compressors and Turbines **" << endl;
+      oList = .list("Element",0,"exists(\"PRdes\")==1");
+      sList = { "pwr", "trq", "PR", "PRdes" }
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+
+      // Shaft Element
+      os_solverReport << "\n  ** Shaft **" << endl;
+      oList = .list("Shaft",0,"exists(\"pwrNet\")==1");
+      sList = { "pwrIn", "pwrOut", "pwrNet", "trqIn", "trqOut", "trqNet" }
+      os_solverReport << printObjAttr( oList, sList, sep, pre );
+        
+      os_solverReport << "\n  ** END SOLVER REPORT ** \n\n";
+    }
+    
+    
+  }
+}
+
+  void display_ccv_solverReport() {
+    ccv_solverReport.display();
+  }
+// postsolverSequence.append("display_ccv_solverReport");
+
+#endif

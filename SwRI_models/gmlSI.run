@@ -1,0 +1,10 @@
+// Configure Flow Network Diagram
+#define GENGML 1
+#include <genGmlSwRI.fnc>
+
+gml.switchUnits = "SI";
+
+// Generate GML diagram
+if ( $GENGML ) {
+    saveFlowSheets();
+}

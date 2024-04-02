@@ -1,0 +1,432 @@
+#ifndef __TearStreamSwRI__
+#define __TearStreamSwRI__
+
+#include <InterpIncludes.ncp>
+
+class TearStreamSwRI extends Element{
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+  title = "";
+
+  description = isA() + " provides a means of creating a model with a closed loop flow system.";
+
+  usageNotes = isA() + 
+"  
+
+- The FlowStartEnd element is used to provide the balances
+  necessary to model a closed loop flow system such as used
+  in refrigeration systems, etc.
+  ";
+
+  background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+    
+  real ht {
+    value = 0;  IOstatus = INPUT;  units = RANKINE;
+    description = "Total enthalpy of the flow";
+  }
+  real ht_copyError;
+  real Pt {
+    value = 0;  IOstatus = INPUT;  units = PSIA;
+    description = "Total pressure of the flow";
+    trigger = 0;
+  }
+  real Pt_copyError;
+  real Tt {
+    value = 0;  IOstatus = INPUT;  units = RANKINE;
+    description = "Reference temperature";
+  }
+  real Tt_copyError;
+  real W {
+    value = 0;  IOstatus = INPUT;  units = LBM_PER_SEC;
+    description = "Weight flow";
+  }
+  real W_copyError;
+  string comp {
+    value = ""; IOstatus = INPUT;
+    trigger = 1;
+  }
+
+  real tolerance {
+    value = 1e-4; IOstatus = INPUT;
+    description = "Convergence criteria";
+  }
+  int converged {
+    value = 1;
+    description = "Convergence Status";
+  }
+  
+  // If "SOLVE_W_P_h", vary outlet conditions to match inlet conditions
+  // during design and offdesign for all three parameters: flow rate,
+  // pressure and enthalpy.
+  // If "SOLVE_P_T", vary outlet pressure and temperature to match inlet
+  // conditions, vary flow rate to satisfy a dependent elsewhere in the 
+  // loop (e.g. shaft torque) during design and offdesign
+  
+  Option switchSolveSet{
+    allowedValues = { "NONE", 
+        "SOLVE_W_P_T", "SOLVE_W_P_h", "SOLVE_P_T", "SOLVE_P_h", "SOLVE_h", 
+        "COPY_W_P_T", "COPY_W_P_h", "COPY_P_T", "COPY_P_h", "COPY_h"
+     }
+    trigger = 1;    
+  }
+  
+  Option switchDes{
+    allowedValues = { "DESIGN", "OFFDESIGN" }
+    trigger = 1;    
+  }
+ 
+  
+
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+    
+    FluidInputPort Fl_I;
+    FluidOutputPort Fl_O;
+    
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+    Independent ind_W{
+        varName = "W";
+        autoSetup = FALSE;
+        // dxLimit = 0.5;
+        // perturbation = 0.1;
+    }
+    Dependent dep_W{
+        eq_lhs = "Fl_I.W";
+        eq_rhs = "Fl_O.W";
+        eq_Ref = "Fl_O.W+1e-4";
+        autoSetup = FALSE;
+    }
+    Independent ind_Pt{
+        varName = "Pt";
+        autoSetup = FALSE;
+        // dxLimit = 0.5;
+        // perturbation = 0.1;
+    }
+    Dependent dep_Pt{
+        eq_lhs = "Fl_I.Pt";
+        eq_rhs = "Fl_O.Pt";
+        eq_Ref = "Fl_I.Pt";
+        autoSetup = FALSE;
+    }
+    Independent ind_Tt{
+        varName = "Tt";
+        autoSetup = FALSE;
+        // dxLimit = 0.5;
+        // perturbation = 0.1;
+    }
+    Dependent dep_Tt{
+        eq_lhs = "Fl_I.Tt";
+        eq_rhs = "Fl_O.Tt";
+        eq_Ref = "Fl_I.Tt";
+        autoSetup = FALSE;
+    }
+    Independent ind_ht{
+        varName = "ht";
+        autoSetup = FALSE;
+        // dxLimit = 0.5;
+        // perturbation = 0.1;
+    }
+    Dependent dep_ht{
+        eq_lhs = "Fl_I.ht";
+        eq_rhs = "Fl_O.ht";
+        eq_Ref = "Fl_I.ht";
+        autoSetup = FALSE;
+    }
+    
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+  
+    // Fluid composition
+    if (name == "comp") {
+        Fl_I.comp = comp;
+        Fl_O.comp = comp;
+    }
+
+    // if (name == "Pt") {
+    //     cout << getPathName() << ": Pt Updated from " << oldVal << " to " << Pt << endl;
+    // }
+
+    if(name == "switchSolveSet" || name == "switchDes"){
+        if(switchSolveSet == "NONE"){
+            ind_W.autoSetup  = FALSE;
+            dep_W.autoSetup  = FALSE;
+            ind_Pt.autoSetup = FALSE;
+            dep_Pt.autoSetup = FALSE;
+            ind_Tt.autoSetup = FALSE;
+            dep_Tt.autoSetup = FALSE;
+            ind_ht.autoSetup = FALSE;
+            dep_ht.autoSetup = FALSE;
+        } else if(switchSolveSet == "SOLVE_W_P_h"){
+            // User provides initial guesses for W, P, h
+            // and W, P, h are all varied by the solver.
+            // Solver dependents are active for W, P, and h.
+            if ( switchDes == "DESIGN" ){
+                ind_W.autoSetup = TRUE;
+                dep_W.autoSetup = TRUE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+            else if ( switchDes == "OFFDESIGN" ){
+                ind_W.autoSetup = TRUE;
+                dep_W.autoSetup = TRUE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+        }
+        else if(switchSolveSet == "SOLVE_W_P_T"){
+            // User provides initial guesses for W, P, T 
+            // and W, P, T are all varied by the solver.
+            // Solver dependents are active for W, P, and T.
+            if ( switchDes == "DESIGN" ){
+                ind_W.autoSetup = TRUE;
+                dep_W.autoSetup = TRUE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = TRUE;
+                dep_Tt.autoSetup = TRUE;
+                ind_ht.autoSetup = FALSE;
+                dep_ht.autoSetup = FALSE;
+            }
+            else if ( switchDes == "OFFDESIGN" ){
+                ind_W.autoSetup = TRUE;
+                dep_W.autoSetup = TRUE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = TRUE;
+                dep_Tt.autoSetup = TRUE;
+                ind_ht.autoSetup = FALSE;
+                dep_ht.autoSetup = FALSE;
+            }
+        }
+        else if(switchSolveSet == "SOLVE_P_h"){
+            // User sets P and h and provides initial guess for W.
+            // Solver dependents are active for P and h
+            if ( switchDes == "DESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+            else if ( switchDes == "OFFDESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+        }
+        else if(switchSolveSet == "SOLVE_P_T"){
+            // User sets P and T and provides initial guess for W.
+            // Solver dependents are active for P and T
+            if ( switchDes == "DESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = TRUE;
+                dep_Tt.autoSetup = TRUE;
+                ind_ht.autoSetup = FALSE;
+                dep_ht.autoSetup = FALSE;
+            }
+            else if ( switchDes == "OFFDESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = TRUE;
+                dep_Pt.autoSetup = TRUE;
+                ind_Tt.autoSetup = TRUE;
+                dep_Tt.autoSetup = TRUE;
+                ind_ht.autoSetup = FALSE;
+                dep_ht.autoSetup = FALSE;
+            }
+        }
+        else if(switchSolveSet == "SOLVE_h"){
+            // User sets P and h and provides initial guess for W.
+            // Solver dependents are active for P and h
+            if ( switchDes == "DESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = FALSE;
+                dep_Pt.autoSetup = FALSE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+            else if ( switchDes == "OFFDESIGN" ){
+                ind_W.autoSetup = FALSE;
+                dep_W.autoSetup = FALSE;
+                ind_Pt.autoSetup = FALSE;
+                dep_Pt.autoSetup = FALSE;
+                ind_Tt.autoSetup = FALSE;
+                dep_Tt.autoSetup = FALSE;
+                ind_ht.autoSetup = TRUE;
+                dep_ht.autoSetup = TRUE;
+            }
+        } else {
+            ind_W.autoSetup  = FALSE;
+            dep_W.autoSetup  = FALSE;
+            ind_Pt.autoSetup = FALSE;
+            dep_Pt.autoSetup = FALSE;
+            ind_Tt.autoSetup = FALSE;
+            dep_Tt.autoSetup = FALSE;
+            ind_ht.autoSetup = FALSE;
+            dep_ht.autoSetup = FALSE;
+        }
+    }
+  } // end variableChanged
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+  void updateError() {
+    // Compute error terms
+    W_copyError =  abs(Fl_I.W  - Fl_O.W) / max(Fl_O.W, 1.);
+    Pt_copyError = abs(Fl_I.Pt - Fl_O.Pt) / Fl_O.Pt;
+    Tt_copyError = abs(Fl_I.Tt - Fl_O.Tt) / Fl_O.Tt;
+    ht_copyError = abs(Fl_I.ht - Fl_O.ht) / Fl_O.ht;
+   }
+
+  int isConverged() {
+
+    updateError();
+
+    // Check for convergence
+    if (  (W_copyError  <= tolerance) && 
+          (Pt_copyError <= tolerance) &&
+          (Tt_copyError <= tolerance) &&
+          (ht_copyError <= tolerance) ) {
+      converged = 1;
+    } else {
+      converged = 0;
+    }
+    return converged;
+  }
+
+  void calculate(){
+
+        // Calculate convergence criteria for all iterations for information
+        updateError();
+
+        // Set outlet flow rate
+        if (switchSolveSet == "COPY_W_P_T" || switchSolveSet == "COPY_W_P_h"){
+            W = Fl_I.W;
+        }
+        Fl_O.W = W;
+
+        // Set Outlet Conditions for SOLVE
+        if (switchSolveSet == "SOLVE_P_T" || switchSolveSet == "SOLVE_W_P_T"){
+            // Set exit conditions based on temperature and pressure
+            //cout << "debug: Set exit conditions based on temperature and pressure" << endl;
+            //cout << "debug: Fl_O.setTotalTP( "<<Tt <<", "<<Pt <<" );" << endl;
+            Fl_O.setTotalTP( Tt, Pt );
+        }
+        else if (switchSolveSet == "SOLVE_P_h" || switchSolveSet == "SOLVE_W_P_h"){
+            // Set exit conditions based on enthalpy and pressure
+            //cout << "debug: Set exit conditions based on enthalpy and pressure" << endl;
+            //cout << "debug: Fl_O.setTotal_hP( "<< ht << ", " << Pt << ");" << endl;
+            Fl_O.setTotal_hP( ht, Pt);
+        }
+        else if (switchSolveSet == "SOLVE_h" ){
+            // Set exit conditions based on enthalpy and pressure
+            //cout << "debug: Set exit conditions based on enthalpy and pressure" << endl;
+            //cout << "debug: Fl_O.setTotal_hP( "<< ht << ", " << Pt << ");" << endl;
+            Fl_O.setTotal_hP( ht, Pt);
+        }
+
+        // Set Outlet Conditions for COPY
+        if (switchSolveSet == "COPY_P_T" || switchSolveSet == "COPY_W_P_T"){
+            // Set exit conditions based on temperature and pressure
+            
+            // Copy
+            Pt = Fl_I.Pt;
+            Tt = Fl_I.Tt;
+
+            // Set
+            Fl_O.setTotalTP( Tt, Pt );
+            ht = Fl_O.ht;
+        }
+        else if (switchSolveSet == "COPY_P_h" || switchSolveSet == "COPY_W_P_h"){
+            // Set exit conditions based on enthalpy and pressure
+            
+            // Copy
+            Pt = Fl_I.Pt;
+            ht = Fl_I.ht;
+
+            // Set
+            Fl_O.setTotal_hP( ht, Pt);
+            Tt = Fl_O.Tt;
+        }
+        else if (switchSolveSet == "COPY_h" ){
+            // Set exit conditions based on enthalpy and pressure
+          
+            // Copy
+            ht = Fl_I.ht;
+
+            // Set
+            Fl_O.setTotal_hP( ht, Pt);
+            Tt = Fl_O.Tt;
+
+        } 
+        
+        if (switchSolveSet == "NONE" ){
+            // Set
+            Fl_O.setTotalTP( Tt, Pt );
+            ht = Fl_O.ht;
+        }
+
+        
+  }
+
+  int verify() {
+    if (switchSolveSet == "SOLVE_P_T" || switchSolveSet == "SOLVE_W_P_T"){
+        // Set exit conditions based on temperature and pressure
+        //cout << "debug: Set exit conditions based on temperature and pressure" << endl;
+        //cout << "debug: Fl_O.setTotalTP( "<<Tt <<", "<<Pt <<" );" << endl;
+        Fl_O.setTotalTP( Tt, Pt );
+    }
+    else if (switchSolveSet == "SOLVE_P_h" || switchSolveSet == "SOLVE_W_P_h"){
+        // Set exit conditions based on enthalpy and pressure
+        //cout << "debug: Set exit conditions based on enthalpy and pressure" << endl;
+        //cout << "debug: Fl_O.setTotal_hP( "<< ht << ", " << Pt << ");" << endl;
+        Fl_O.setTotal_hP( ht, Pt);
+    }
+    else if (switchSolveSet == "SOLVE_h" ){
+        // Set exit conditions based on enthalpy and pressure
+        //cout << "debug: Set exit conditions based on enthalpy and pressure" << endl;
+        //cout << "debug: Fl_O.setTotal_hP( "<< ht << ", " << Pt << ");" << endl;
+        Fl_O.setTotal_hP( ht, Pt);
+    }
+    return 1;
+  }
+
+}
+#endif

@@ -1,0 +1,57 @@
+OutFileStream os_genSolverDebug { filename = "solverDebug.temp"; }
+
+
+void genSolverDebugFile() {
+
+	string sList[];
+	sList = .list("Solver",1);
+	int i;
+
+
+	for (i=0;i<sList.entries();i++) {
+		os_genSolverDebug << sList[i] << " {" << endl;
+		os_genSolverDebug << "  if ( ! exists(\"caseDir\") ) {" << endl;
+		os_genSolverDebug << "	  string caseDir, caseName; " << endl;
+		os_genSolverDebug << "	  caseDir = \"./\"; " << endl;
+		os_genSolverDebug << "	  caseName = \"case\"; " << endl;
+		os_genSolverDebug << "	}" << endl;
+		os_genSolverDebug << "	string solName; " << endl;
+		os_genSolverDebug << "	solName = caseDir+\"/\"+caseName + \".\"+\"" << sList[i] << "\"; " << endl;
+		os_genSolverDebug << "	cout << \"DEBUG solName\" << solName << \" \" << getPathName() << endl;" << endl;
+		os_genSolverDebug << " " << endl;
+		os_genSolverDebug << "  diagnosticFile = solName +\".diag\"; " << endl;
+		os_genSolverDebug << "  debugLevel = \"ITERATION_DETAILS\"; " << endl;
+		os_genSolverDebug << " " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverErrorCon {filename = solName+\".errorCon\"; } " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverX {filename = solName+\".x\"; } " << endl;
+		os_genSolverDebug << " " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverColumn {filename = solName+\"_column.out\"; } " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverColumnSI {filename = solName+\"_columnSI.out\"; } " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverRow {filename = solName+\"_row.out\"; } " << endl;
+		os_genSolverDebug << "	OutFileStream os_printSolverRowSI {filename = solName+\"_rowSI.out\"; } " << endl;
+		os_genSolverDebug << " " << endl;
+		os_genSolverDebug << "	#include <solverUserReport.fnc> " << endl;
+		os_genSolverDebug << "} " << endl;
+		os_genSolverDebug << endl;
+	}
+
+}
+
+
+int doSolverDebug=1;
+void updateSolverDebugVarList() {
+	string sList[];
+	sList = .list("Solver",1);
+	int i;
+
+	if (doSolverDebug){
+		for (i=0;i<sList.entries();i++) {
+			sList[i]->updateSolverVarList();
+		}
+	}
+}
+
+// Run it
+genSolverDebugFile();
+parseFile(os_genSolverDebug.filename);
+updateSolverDebugVarList();

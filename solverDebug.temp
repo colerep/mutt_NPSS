@@ -1,0 +1,24 @@
+solver {
+  if ( ! exists("caseDir") ) {
+	  string caseDir, caseName; 
+	  caseDir = "./"; 
+	  caseName = "case"; 
+	}
+	string solName; 
+	solName = caseDir+"/"+caseName + "."+"solver"; 
+	cout << "DEBUG solName" << solName << " " << getPathName() << endl;
+ 
+  diagnosticFile = solName +".diag"; 
+  debugLevel = "ITERATION_DETAILS"; 
+ 
+	OutFileStream os_printSolverErrorCon {filename = solName+".errorCon"; } 
+	OutFileStream os_printSolverX {filename = solName+".x"; } 
+ 
+	OutFileStream os_printSolverColumn {filename = solName+"_column.out"; } 
+	OutFileStream os_printSolverColumnSI {filename = solName+"_columnSI.out"; } 
+	OutFileStream os_printSolverRow {filename = solName+"_row.out"; } 
+	OutFileStream os_printSolverRowSI {filename = solName+"_rowSI.out"; } 
+ 
+	#include <solverUserReport.fnc> 
+} 
+

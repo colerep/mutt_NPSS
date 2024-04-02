@@ -1,0 +1,618 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __PIPE_SEG__
+#define __PIPE_SEG__
+
+#include <InterpIncludes.ncp>
+
+class Pipe_Seg extends Element {  
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+	 
+  description = isA() + " calculates compressible fluid flow through an orifice.";
+
+  usageNotes =  
+"
+
+- Pipe Element used for Natural Convection Loop Modeling
+ 
+"; 
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+			
+  real kTot{
+    value = 0.0; IOstatus = INPUT; units = NONE;
+    description = "Total Head Loss factors (k-factor sum)";
+  }  
+  real dH{
+    value = 0.0; IOstatus = INPUT; units = FT;
+    description = "Total change in height";	
+  }	
+  real dL{
+    value = 0.0; IOstatus = INPUT; units = FT;
+    description = "Total change in length";	
+  }		
+  real ID{
+    value = 1.0; IOstatus = INPUT; units = FT;
+    description = "inner diameter of pipe";	
+  }	
+  real ID_2{
+	value = 1.0; IOstatus = INPUT; units = FT;
+    description = "inner diameter of downstream pipe";	
+  }
+  real area{
+    value = 0.0; IOstatus = OUTPUT; units = FT2;
+    description = "cross sectional area of pipe";	
+  }	
+  real vol{
+    value = 0.0; IOstatus = OUTPUT; units = FT;
+    description = "volume calculation, used for reducerr";	
+  }	
+  real e{
+    value = 1.0; IOstatus = INPUT; units = FT;
+    description = "pipe roughness";	
+  }
+  real e_D{
+    value = 1.0; IOstatus = INPUT; units = FT;
+    description = "pipe roughness/diameter";	
+  }
+  int elbows{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "Number of elbows";	
+  }
+  int tees{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "Number of tees";	
+  }
+  int dead{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "True or False if dead leg";	
+  }
+  int reducer{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "True or False if the length is a reducer or extracter";	
+  }
+  int enlarge{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "True or False if extraction is present";	
+  }
+  int contract{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "True or False if contraction is present";	
+  }
+  real beta{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "Diameter ratio for smaller diameter/larger diameter";	
+  }
+  real theta{
+    value = 0; IOstatus = INPUT; units = NONE;
+    description = "Angle of expansion/contraction specified by Crane";	
+  }
+  int PtqPsTh{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Incoming total pressure / static throat pressure";	
+  }
+  real W{
+    value = 0.0; IOstatus = OUTPUT; units = LBM_PER_SEC;
+    description = "Mass Flow through the pipe";
+  }
+  real fluidMass{
+    value = 0.0; IOstatus = INPUT; units = LBM;
+    description = "Total mass of volume";	
+  }
+  real wallMass{
+    value = 0.0; IOstatus = INPUT; units = LBM;
+    description = "Total mass of wall cell volume";	
+  }
+  real Re{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Reynolds Number";
+  }
+  real head{
+    value = 0.0; IOstatus = OUTPUT; units = PSIA;
+    description = "dynamic pressure";
+  }
+  real fF{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "friction coefficient";
+  }
+  real fF_smooth{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "friction coefficient for smooth tube";
+  }
+  real Nu{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "Nusselt";
+  }
+  real h{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "heat transfer coefficient";
+  }
+  real R{
+    value = 0.0; IOstatus = OUTPUT; units = NONE;
+    description = "fluid resistance in cell";
+  }
+  
+  real dPhydro{
+    value = 0.0; IOstatus = OUTPUT; units = PSIA;
+    description = "change in pressure due to height change";
+  }
+  real dP{
+    value = 0.0; IOstatus = OUTPUT; units = PSIA;
+    description = "total change in pressure including all sources";
+  } 
+  real dPcell{
+    value = 0.0; IOstatus = OUTPUT; units = PSIA;
+    description = "total pressure change per cell";
+  } 
+  
+
+  // Transient Variables
+  real time_current { 
+    value = 0.00; IOstatus = OUTPUT; units = SEC; 
+    description = "timestep"; 
+  }
+  real baseStep {                                  
+    // This is set in the case file of a transient run 
+    value = 0.01; IOstatus = INPUT; units = SEC;      
+    description = "timestep for model transient"; 
+  }
+  real1D Tsteady{
+    value = {}; IOstatus = OUTPUT; units = RANKINE;
+    description = "Steady state temperature of fluid";	
+  }
+  real1D Twall{
+    value = {}; IOstatus = OUTPUT; units = RANKINE;
+    description = "Steady state temperature of pipe wall";	
+  }
+  real stepMax {
+	  value = 0.01; IOstatus = OUTPUT; units = SEC; 
+    description = "max timestep for element transient"; 
+  }
+  int Trans{
+    value = 0; IOstatus = OUTPUT; units = NONE;
+    description = "True or False if transient calculations need to be done";	
+  }
+  int nCells {
+    value = 1;  IOstatus = INPUT;   units = NONE;
+    description = "Number of total cells used to discretize heat exchanger (One less than node count)";
+  }
+  real1D f { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding temperature values"; 
+  }
+  real1D f_k { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding previous time step temperature values"; 
+  }
+  real1D f_base { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding previous time step hot-side temperature values"; 
+  }
+  real1D w { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding wall temperature values"; 
+  }
+  real1D w_k { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding previous time step wall temperature values"; 
+  }
+  real1D w_base { 
+	value = {}; IOstatus = OUTPUT; units = NONE;
+	description = "Array for holding previous time step wall temperature values"; 
+  }
+  real1D a1 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient a1"; 
+  }
+  real1D a2 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient a2"; 
+  }
+  real1D a3 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient a3"; 
+  }
+  real1D a4 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient a4"; 
+  }
+  real1D b1 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient b1"; 
+  }
+  real1D b2 { 
+	value = {}; IOstatus = OUTPUT; units = NONE; 
+	description = "coefficient b2"; 
+  }
+  real dX{
+    value = 0.0; IOstatus = INPUT; units = FT;
+    description = "cell length";	
+  }
+  real Tin_k { 
+    value = 0.00; IOstatus = OUTPUT; units = RANKINE; 
+    description = "Temperature in from previous timestep"; 
+  }
+  real Tin_prev { 
+    value = 0.00; IOstatus = OUTPUT; units = RANKINE; 
+    description = "Temperature in from previous timestep"; 
+  }
+  real Tin { 
+    value = 0.00; IOstatus = OUTPUT; units = RANKINE; 
+    description = "Temperature in from current timestep"; 
+  }
+  real1D rho {
+    value = {}; IOstatus = OUTPUT; units = LBM_PER_FT3;
+    description = "Density";
+  }
+  
+  //////
+  // Thermal Transient and Wall Properties 
+  //////
+  real1D k_wall {                                  
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_SEC_FT_R;      
+    description = "thermal conductivity of wall in between fluid streams"; 
+  } 
+  real rho_wall {                                  
+    value = 499.4; IOstatus = INPUT; units = LBM_PER_FT3;      
+    description = "thermal conductivity of wall in between fluid streams"; 
+  }
+  real1D Cp_wall {                                  
+    value = {}; IOstatus = OUTPUT; units = BTU_PER_LBM_R;      
+    description = "thermal conductivity of wall in between fluid streams"; 
+  }
+  
+  real fOut;
+  
+  // Orifice Variables
+
+  //------------------------------------------------------------
+  // ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+  //------------------------------------------------------------
+  
+  FlowStation Fl_temp {
+    description = "Temporary FlowStation used for calculating effectiveness";
+  }
+  
+  // FLUID PORTS
+
+  FluidInputPort Fl_I{   
+    description = "Inlet fluid port ";
+  }  
+  FluidOutputPort Fl_O{ 
+    description = "Outlet fluid port ";
+  }
+  
+  // FUEL PORTS
+  
+  // BLEED PORTS
+  
+  // THERMAL PORTS
+  
+  // MECHANICAL PORTS
+    
+  // FLOW STATIONS
+  
+  // SOCKETS
+
+  
+  // TABLES
+  Table elbow_eq (real diam) {
+	  diam = {0.333,0.5,0.667,0.833,1.0}
+	  elbow_eq = {7.0,11.0,14.0,17.0,20.0}
+	  interp = "lagrange2"; 
+	  extrap = "lagrange2"; 
+	  printExtrap = 0; 
+  }
+  
+  
+  Table tee_eq (real diam) {
+	  diam = {0.333,0.5,0.667,0.833,1.0}
+	  tee_eq = {22.0,33.0,43.0,56.0,66.0}
+	  interp = "lagrange2"; 
+	  extrap = "lagrange2"; 
+	  printExtrap = 0; 
+  }
+  
+  Table wall_t (real diam) {
+	  diam = {0.172,0.665,0.835}
+	  wall_t = {.0128,.02683,.0304}
+	  interp = "linear"; 
+	  extrap = "linear"; 
+	  printExtrap = 0; 
+  }
+  
+  Table k_ss (real T_metal) {
+	  T_metal = {540,720,900,1080,1260,1440}
+	  k_ss = {0.00083,0.002343,0.002602,0.002862,0.003122,0.003382}
+	  interp = "linear"; 
+	  extrap = "linear"; 
+	  printExtrap = 0; 
+  }
+  
+  Table Cp_ss (real T_metal) {
+	  T_metal = {540,720,900,1080,1260,1440}
+	  Cp_ss = {0.1219,.1251,.1283,.1315,.1348,.138}
+	  interp = "linear"; 
+	  extrap = "linear"; 
+	  printExtrap = 0; 
+  }
+  
+  //#include <dTdP_air.inc>
+ 
+  //------------------------------------------------------------
+  // ******* SOLVER SETUP *******
+  //------------------------------------------------------------  
+  
+  //------------------------------------------------------------
+  //  ******  ADD SOLVER INDEPENDENTS & DEPENDENT  ******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******* VARIABLE CHANGED METHODOLOGY *******
+  //------------------------------------------------------------
+
+  //------------------------------------------------------------
+  //  ******* OPTION VARIABLE SETUP *******
+  //------------------------------------------------------------
+
+  Option switchDes{
+    allowedValues = {DESIGN,OFFDESIGN }	//default value is DESIGN
+    description = "Design mode switch indicator [DESIGN/OFFDESIGN]";
+    trigger = 0;
+    rewritableValues = FALSE;  // Enables converter optimization.
+  }
+
+  //------------------------------------------------------------
+  //  ******* VERIFY ELEMENT *******
+  //------------------------------------------------------------
+  
+  //------------------------------------------------------------
+  //  ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+		
+ void calculate() {
+	 
+	 kTot = 0.0;
+	 
+	 //Preliminary calculations
+	 Fl_O.copyFlow("Fl_I");
+	 Fl_temp.copyFlow("Fl_I"); 
+	 area = PI*ID**(2.)/4.;
+	 W = Fl_I.W; 
+	 Re = W*ID/(Fl_I.mut*area); 
+	 e_D = e/ID;
+	 
+	 if(Re  == 0 ){
+		fF = 0;
+	 }
+	 else {
+		fF = 64.0/Re;
+	 }
+	 if (Re > 2100) {
+		fF = (-2*log10(e_D/3.7065-5.0452/Re*log10(1/2.8257*e_D**(1.1098)+5.8506/Re^(0.8981))))**(-2.); 
+	 } 
+	 
+	 Nu = ((fF/8.)*(Re-1000.)*Fl_I.Prt)/(1.+12.7*(fF/8.)**(0.5)*(Fl_I.Prt**(2./3.)-1)); 
+	 h = Nu*Fl_I.kt/ID;
+	 
+
+	 head = (0.5*(W/area)**(2.)/Fl_I.rhot)/(144.*32.2); //psi
+	 
+	 //If the pipe doesn't have any area changes
+	 if (reducer == 0){
+		 kTot += fF*dL/ID; 
+		 kTot += elbows*elbow_eq(ID)*fF; 
+		 kTot += tees*tee_eq(ID)*fF; 
+	 }
+	 
+	 
+	 //These use equations from Crane Nuclear
+	 else if (reducer == 1){
+		 int y; 
+		 int z; 
+		 real slice_d; 
+		 int slice = 10;
+		 if (enlarge==1){
+			beta = ID/ID_2;
+			theta = 2.0*atan(0.5*(ID_2-ID)/dL);
+			kTot += 2.6*sin(theta/2)*(1-beta**(2.0))**(2.0); 
+			
+			//calculate total volume
+			vol = 0;
+			for (y = 0; y < slice; y++){
+				slice_d = ID+(y+0.5)/(slice)*(ID_2-ID);
+				vol += PI*(slice_d)**(2.0)/(4.0)*(dL/slice); 
+			}		
+		 }
+		 else if (contract==1){
+			beta = ID_2/ID;
+			theta = 2.0*atan(0.5*(ID-ID_2)/dL);
+			kTot += (0.8*sin(theta/2)*(1-beta**(2.0)))/(beta**(4.0)); 
+			
+			//calculate total volume
+			vol = 0;
+			for (z = 0; z < slice; z++){
+				slice_d = ID_2+(z+0.5)/(slice)*(ID-ID_2);
+				vol += PI*(slice_d)**(2.0)/(4.0)*(dL/slice); 
+			}
+		 }
+		 Fl_temp.setTotal_hP(Fl_I.ht,Fl_I.Pt);
+		 fluidMass = vol*Fl_temp.rhot;
+	 }
+	 
+	 dP = kTot*head;
+	 
+	 // Logic to determine which calculation mode occurs
+	 if (!(solutionMode == "TRANSIENT")&&(reducer == 0) && (dL >= 4) && (dead == 0)){     //If it's a long pipe length, transient mode is turned on and calculations to set up transient are performed
+		 Trans = 1;
+		 transient_preExec();
+		 Fl_O.setTotal_hP(Fl_I.ht,Fl_I.Pt-dP); 
+	 }
+	 
+	 else if ((solutionMode == "TRANSIENT")&&(Trans == 1)){  //The transient mode is run for long pipe lengths
+		 transient();
+	 }
+	 else if (reducer == 1){           //This is the case for reducers, dL is below the length criteria 
+		 Fl_O.setTotal_hP(Fl_I.ht,Fl_I.Pt-dP);		 
+	 }
+	 else {
+		 Fl_O.setTotal_hP(Fl_I.ht,Fl_I.Pt-dP);	
+		 fluidMass = Fl_O.rhot*dL*area;
+	 }
+	 
+	 		  
+
+ } //End calculate
+ 
+ void transient_preExec(){
+	 nCells = ceil(dL/(4.0));
+	 dX = dL/nCells;
+	 Tsteady.resize(nCells);
+	 Twall.resize(nCells);
+	 rho.resize(nCells);
+	 vol = 0;
+	 wallMass = PI*((ID+2.0*wall_t(ID))**(2.0)-(ID)**(2.0))/4.0*dX*rho_wall;
+	 
+	 int i; 
+	 fluidMass = 0;
+	 dPcell = dP/(nCells);
+	 for (i = 0; i < (nCells); ++i){
+		Fl_temp.setTotal_hP(Fl_I.ht, Fl_I.Pt-dPcell*(i+1));
+		Tsteady[i] = Fl_temp.Tt;
+		Twall[i] = Fl_temp.Tt;
+		rho[i] = Fl_temp.rhot;
+		fluidMass += rho[i]*dX*area;
+		vol += area*dX; 
+	 }
+ }
+ 
+ void transient(){
+	 int p;
+	 
+	 baseStep = transient.baseTimeStep;
+	 real step = baseStep;
+	 
+	 f_base.resize(nCells);
+	 f.resize(nCells);
+	 f_k.resize(nCells);
+	 w_base.resize(nCells);
+	 w.resize(nCells);
+	 w_k.resize(nCells);
+	 a1.resize(nCells);
+	 a2.resize(nCells);
+	 a3.resize(nCells);
+	 a4.resize(nCells);
+	 b1.resize(nCells);
+	 b2.resize(nCells);
+	 
+	 R = 1./(h*(PI*ID)*dX);
+	 
+	 if(W>0){
+		stepMax = Fl_I.rhot*dX*area/(W);
+	 
+		if (step > stepMax){
+			cout << "WARNING" << endl;
+			cout << "piping step: " << step << endl;
+			cout << "piping stepMax: " << stepMax << endl;
+			cout << "parent.getPathName()" << parent.getPathName() <<endl;
+		}
+	 }
+	 fluidMass = 0.;
+	 
+	 for (p = 0; p < (nCells); p++){
+		 //Set initial values form steady state
+		 if (time ==(baseStep)){
+			f_k[p] = Tsteady[p];
+			f_base[p] = Tsteady[p]; 
+			w_k[p] = Twall[p];
+			w_base[p] = Twall[p]; 
+		 }
+		 // This ensures that the transient run is based off of the previous timestep and not the previous iteration
+		 else if (!(time==baseStep)){
+			if(!(time==time_current)){
+				f_base[p] = f[p]; 
+				w_base[p] = w[p];				
+			}
+			f_k[p] = f_base[p]; 
+			w_k[p] = w_base[p];
+		 }
+		 
+		 //Calculate the dP per cell
+		 dPcell = dP/(nCells);
+		 
+		 // Set temporary flow station to get density and a1 values
+		 Fl_temp.setTotalTP(f_k[p], Fl_I.Pt-dPcell*p);
+		 a1[p] = -W/(Fl_temp.rhot*area);
+		 a2[p] = -W/(Fl_temp.rhot*area*R*dX*Fl_temp.Cpt);
+		 a3[p] = W/(Fl_temp.rhot*area*R*dX*Fl_temp.Cpt);
+		 a4[p] = W/(Fl_temp.rhot*area*dX);
+		 
+		 // Set b values
+		 b1[p] = 1./(R*wallMass*Cp_ss(w_k[p])); 
+		 b2[p] = -1./(R*wallMass*Cp_ss(w_k[p])); 
+		 
+		 // Solve for next timestep
+		 if(p==0){
+			f[p] = Fl_I.Tt;
+			w[p] = b1[p]*f[p]/(2./step-b2[p])+(b1[p]*f_k[p]+b2[p]*w_k[p]+2.*w_k[p]/step)/(2./step-b2[p]);
+		 }
+		 else {
+			f[p] = (f_k[p]/step+0.5*(a1[p]*(-f[p-1]-f_k[p-1]+f_k[p])/dX+a2[p]*(f_k[p])+a3[p]*(w_k[p]+(b1[p]*f_k[p]+b2[p]*w_k[p]+2.*w_k[p]/step)/(2./step-b2[p])))+a4[p]*(-dPcell)*dTdP(Fl_temp.ht,Fl_temp.Pt))/(1./step-a1[p]/(2.*dX)-a2[p]/2.0-0.5*(a3[p]*b1[p])/(2./step-b2[p]));
+			w[p] = b1[p]*f[p]/(2./step-b2[p])+(b1[p]*f_k[p]+b2[p]*w_k[p]+2.*w_k[p]/step)/(2./step-b2[p]);
+		 }
+		 
+		 //Set temporary flowstation to solve for the mass of each element
+		 Fl_temp.setTotalTP(f[p], Fl_I.Pt-dPcell*p);
+		
+		 rho[p] = Fl_temp.rhot;
+		 fluidMass += rho[p]*dX*area;
+	 }
+	 
+	 fOut = f[nCells-1];
+	 
+	 Fl_O.setTotalTP(fOut,Fl_I.Pt-dP);
+	 
+	 
+	 if((!(time==time_current))&&((time_current % 5.) == 0.0)&&(dL>10.0)){
+		cout << "Tpipe = " << f << endl;
+		cout << "Twall = " << w << endl;
+		// cout << a1 << endl;
+		// cout << a2 << endl;
+		// cout << a3 << endl;
+		// cout << a4 << endl;
+	 }
+	 
+	 time_current = time;
+	 
+ }
+	 
+
+} //End Element 
+
+#endif
+

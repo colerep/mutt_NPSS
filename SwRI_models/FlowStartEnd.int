@@ -1,0 +1,293 @@
+/*******************************************************************************
+Copyright 2003. The U.S. Government, as Represented by the Administrator of
+the National Aeronautics and Space Administration (NASA). All rights reserved.
+Includes content licensed from the U.S. Government, National Aeronautics and
+Space Administration under United States Copyright Registration Numbers
+V3503D364 and V3482D344.
+Copyright 2008-2013 NPSS Consortium, www.NPSSConsortium.org/AllRightsReserved
+*******************************************************************************/
+
+/*******************************************************************************
+NPSS software and related documentation is export controlled with an Export
+Control Classification Number(ECCN) of 9D991, controlled for Anti-Terrorism
+reasons, under U.S. Export Administration Regulations 15 CFR 730-774. It may
+not be transferred to a country checked under anti-terrorism on the Commerce
+Country Chart structure or to foreign nationals of those countries in the U.S.
+or abroad without first obtaining a license from the Bureau of Industry and
+Security, United States Department of Commerce. Violations are punishable by
+fine, imprisonment, or both.
+*******************************************************************************/
+//
+// For further information contact support@npssconsortium.org
+//
+
+#ifndef __FLOWSTARTEND__
+#define __FLOWSTARTEND__
+
+#include <InterpIncludes.ncp>
+
+class FlowStartEnd extends Element{
+	
+//------------------------------------------------------------
+//     ******* DOCUMENTATION *******
+//------------------------------------------------------------
+
+  title = "";
+
+  description = 
+ 
+isA() + " is used to provide the balances necessary to model a closed loop flow 
+system. During design, it will vary the cycle's flow rate to meet a dependent elsewhere in the 
+loop and its state variables are dependent on variables elsewhere in the loop. During off-design, 
+the flow rate is varied to meet a dependent elsewhere in the loop (i.e. cycle total fluid mass) 
+and the rest of the outlet coniditions are varied to match inlet conditions. This element has a
+second solver setting where it will vary all outlet conditions to meet inlet conditions so that 
+the user can provide initial guesses for the flow rate and state variables for subsequent elements 
+to mitigate a use-before-calculation (i.e. Heat Exchangers).";
+
+  usageNotes = isA() + 
+  "  
+- The FlowStartEnd element has an option variable to switch the solver settings. The solver can 
+vary cycle's mass flow and provide balances necessary for a closed loop system (SOLVE_P_T/SOLVE_P_h).
+It can also vary outlet conditions to match the inlet conditions (SOLVE_W_P_T/SOLVE_W_P_h).
+  
+- This element has the capability to model muli-phase systems where it works with enthalpy instead
+of temperature (SOLVE_W_P_h/SOLVE_P_h).
+  ";
+
+  background = "";
+
+//------------------------------------------------------------
+//     ******* SETUP VARIABLES ********
+//------------------------------------------------------------
+	
+  real ht {
+    value = 0;  IOstatus = INPUT;  units = RANKINE;
+    description = "Total enthalpy of the flow";
+  }
+  real Pt {
+    value = 0;  IOstatus = INPUT;  units = PSIA;
+    description = "Total pressure of the flow";
+  }
+  real Tt {
+    value = 0;  IOstatus = INPUT;  units = RANKINE;
+    description = "Reference temperature";
+  }
+  real W {
+    value = 0;  IOstatus = INPUT;  units = LBM_PER_SEC;
+    description = "Weight flow";
+  }
+  
+//------------------------------------------------------------
+//   ******* OPTION VARIABLE SETUP *******
+//------------------------------------------------------------
+// default value is the first variable in the allowedValues list
+
+  Option switchSolveSet{
+    allowedValues = {"SOLVE_W_P_h", "SOLVE_P_h", "SOLVE_W_P_T", "SOLVE_P_T"  }
+    trigger = 1;	
+  }
+  
+  Option switchDes{
+    allowedValues = { "DESIGN", "OFFDESIGN" }
+    trigger = 1;	
+  }
+ 
+//------------------------------------------------------------
+// ****** SETUP PORTS, FLOW STATIONS, SOCKETS, TABLES ********
+//------------------------------------------------------------
+
+// FLUID PORTS
+	
+  FluidInputPort Fl_I;
+  FluidOutputPort Fl_O;
+	
+// FUEL PORTS
+
+// BLEED PORTS
+
+// THERMAL PORTS
+
+// MECHANICAL PORTS
+
+// FLOW STATIONS
+
+// SOCKETS
+
+// TABLES
+
+//------------------------------------------------------------
+//  ******  ADD SOLVER INDEPENDENTS & DEPENDENTS  ******
+//------------------------------------------------------------
+
+	Independent ind_W{
+		varName = "W";
+		autoSetup = FALSE;
+	}
+	Dependent dep_W{
+		eq_lhs = "Fl_I.W";
+		eq_rhs = "Fl_O.W";
+		autoSetup = FALSE;
+	}
+	Independent ind_P{
+		varName = "Pt";
+		autoSetup = FALSE;
+	}
+	Dependent dep_P{
+		eq_lhs = "Fl_I.Pt";
+		eq_rhs = "Fl_O.Pt";
+		autoSetup = FALSE;
+    }
+	Independent ind_T{
+		varName = "Tt";
+		autoSetup = FALSE;
+	}
+	Dependent dep_T{
+		eq_lhs = "Fl_I.Tt";
+		eq_rhs = "Fl_O.Tt";
+		autoSetup = FALSE;
+	}
+	Independent ind_h{
+		varName = "ht";
+		autoSetup = FALSE;
+	}
+	Dependent dep_h{
+		eq_lhs = "Fl_I.ht";
+		eq_rhs = "Fl_O.ht";
+		autoSetup = FALSE;
+	}
+	
+//------------------------------------------------------------
+// ******* VARIABLE CHANGED METHODOLOGY *******
+//------------------------------------------------------------
+  void variableChanged( string name, any oldVal ) {
+	if(name == "switchSolveSet" || name == "switchDes"){
+		// Solver settings to provide initial guesses for subsequent elements
+		if(switchSolveSet == "SOLVE_W_P_h"){
+			// Vary outlet conditions to match inlet conditions
+			if ( switchDes == "DESIGN" ){
+				ind_W.autoSetup = TRUE;
+				dep_W.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				ind_h.autoSetup = TRUE;
+				dep_h.autoSetup = TRUE;
+				
+				ind_T.autoSetup = FALSE;
+				dep_T.autoSetup = FALSE;
+			}
+			else if ( switchDes == "OFFDESIGN" ){
+				ind_W.autoSetup = TRUE;
+				dep_W.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				ind_h.autoSetup = TRUE;
+				dep_h.autoSetup = TRUE;
+				
+				ind_T.autoSetup = FALSE;
+				dep_T.autoSetup = FALSE;
+			}
+		}
+		else if(switchSolveSet == "SOLVE_W_P_T"){
+			if ( switchDes == "DESIGN" ){
+				ind_W.autoSetup = TRUE;
+				dep_W.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				ind_T.autoSetup = TRUE;
+				dep_T.autoSetup = TRUE;
+				
+				ind_h.autoSetup = FALSE;
+				dep_h.autoSetup = FALSE;
+			}
+			else if ( switchDes == "OFFDESIGN" ){
+				ind_W.autoSetup = TRUE;
+				dep_W.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				ind_T.autoSetup = TRUE;
+				dep_T.autoSetup = TRUE;
+				
+				ind_h.autoSetup = FALSE;
+				dep_h.autoSetup = FALSE;
+			}
+		}
+		// Solver settings to vary mass flow rate and provide closed-loop system balances
+		else if(switchSolveSet == "SOLVE_P_h"){
+			if ( switchDes == "DESIGN" ){
+				// Flow rate varied to satisfy a dependent elsewhere in the loop
+				ind_W.autoSetup = TRUE;
+				// State variables are dependent on variables elsewhere in the loop
+				dep_P.autoSetup = TRUE;
+				dep_h.autoSetup = TRUE;
+				
+				dep_W.autoSetup = FALSE;
+				ind_P.autoSetup = FALSE;
+				ind_h.autoSetup = FALSE;
+				ind_T.autoSetup = FALSE;
+				dep_T.autoSetup = FALSE;
+			}
+			else if ( switchDes == "OFFDESIGN" ){
+				// Flow rate varied to satisfy a dependent elsewhere in the loop
+				ind_W.autoSetup = TRUE;
+				// Outlet conditions are varied to match inlet conditions
+				ind_h.autoSetup = TRUE;
+				dep_h.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				
+				dep_W.autoSetup = FALSE;
+				ind_T.autoSetup = FALSE;
+				dep_T.autoSetup = FALSE;
+			}
+		}
+		else if(switchSolveSet == "SOLVE_P_T"){
+			if ( switchDes == "DESIGN" ){
+				// Flow rate varied to satisfy a dependent elsewhere in the loop
+				ind_W.autoSetup = TRUE;
+				// State variables are dependent on variables elsewhere in the loop
+				dep_P.autoSetup = TRUE;
+				dep_T.autoSetup = TRUE;
+				
+				dep_W.autoSetup = FALSE;
+				ind_P.autoSetup = FALSE;
+				ind_T.autoSetup = FALSE;
+				ind_h.autoSetup = FALSE;
+				dep_h.autoSetup = FALSE;
+			}
+			else if ( switchDes == "OFFDESIGN" ){
+				// Flow rate varied to satisfy a dependent elsewhere in the loop
+				ind_W.autoSetup = TRUE;
+				// Outlet conditions are varied to match inlet conditions
+				ind_T.autoSetup = TRUE;
+				dep_T.autoSetup = TRUE;
+				ind_P.autoSetup = TRUE;
+				dep_P.autoSetup = TRUE;
+				
+				dep_W.autoSetup = FALSE;
+				ind_h.autoSetup = FALSE;
+				dep_h.autoSetup = FALSE;
+			}
+		}
+	}
+  } // end variableChanged
+
+  //------------------------------------------------------------
+  //   ******* PERFORM ENGINEERING CALCULATIONS *******
+  //------------------------------------------------------------
+	void calculate(){
+	    // Set outlet flow rate
+		Fl_O.W = W;
+		//Fl_O.setTotalTP( Tt, Pt );
+		if (switchSolveSet == "SOLVE_P_T" || switchSolveSet == "SOLVE_W_P_T"){
+			// Set exit conditions based on temperature and pressure
+			Fl_O.setTotal_hP( Tt, Pt);
+		}
+		else if (switchSolveSet == "SOLVE_P_h" || switchSolveSet == "SOLVE_W_P_h"){
+			// Set exit conditions based on enthalpy and pressure
+			Fl_O.setTotal_hP( ht, Pt);
+		}
+  }
+
+}
+#endif
